@@ -51,6 +51,8 @@ bool DynamicManager::mt_Load_Resource(const std::string& reference_file, std::un
             l_Creature->m_Gameplay_Data.m_Health = 1;
             l_Creature->m_Gameplay_Data.m_Health_Max = 1;
 
+            l_Creature->m_Speed = 4.0f;
+
             while(fn_Get_Line(l_Stream, l_Line))
             {
                 std::stringstream l_ss(l_Line);
@@ -108,6 +110,58 @@ bool DynamicManager::mt_Load_Resource(const std::string& reference_file, std::un
                 {
                     l_ss >> l_Creature->m_Gameplay_Data.m_Data_Aventure.m_Psy_Max;
                 }
+                else if (l_Line == "MOVEMENT")
+                {
+                    l_ss >> l_Creature->m_Gameplay_Data.m_Movement;
+                }
+                else if (l_Line == "AI_MOVEMENT_RAND")
+                {
+                    Creature_Control_AI_Rand* l_AI(new Creature_Control_AI_Rand(l_Creature));
+
+                    l_ss >> l_Creature->m_Speed
+                         >> l_AI->m_Threshold_Idle_To_Move_Min_ms >> l_AI->m_Threshold_Idle_To_Move_Max_ms
+                         >> l_AI->m_Threshold_Move_To_Idle_Min_ms >> l_AI->m_Threshold_Move_To_Idle_Max_ms;
+
+                    l_Creature->m_AI.reset(l_AI);
+
+                }
+                else if (l_Line == "AI_MOVEMENT_SQUARE")
+                {
+                    Creature_Control_AI_Square* l_AI(new Creature_Control_AI_Square(l_Creature));
+
+                    l_ss >> l_Creature->m_Speed
+                         >> l_AI->m_Threshold_Idle_To_Move_Min_ms >> l_AI->m_Threshold_Idle_To_Move_Max_ms
+                         >> l_AI->m_Threshold_Move_To_Idle_Min_ms >> l_AI->m_Threshold_Move_To_Idle_Max_ms
+                         >> l_AI->m_Square.left >> l_AI->m_Square.width >> l_AI->m_Square.top >> l_AI->m_Square.height;
+
+                    l_Creature->m_AI.reset(l_AI);
+                }
+                else if (l_Line == "DIALOG")
+                {
+                    sf::String l_String;
+
+                    fn_Get_Line(l_ss, l_Line);
+
+                    for (std::size_t ii = 0; ii < l_Line.size(); ii++)
+                    {
+                        if (l_Line[ii] == '|')
+                        {
+                            l_Creature->m_Dialog.push_back(l_String);
+                            l_String.clear();
+                        }
+                        else if (l_Line[ii] == '\\' && ((l_Line[ii+1] == 'n') || (l_Line[ii+1] == 'r')))
+                        {
+                            l_String += '\n';
+                            ii++;
+                        }
+                        else
+                        {
+                            l_String += l_Line[ii];
+                        }
+                    }
+
+                    l_Creature->m_Dialog.push_back(l_String);
+                }
                 else
                 {
                     l_ss.seekg(0, std::ios_base::beg);
@@ -121,8 +175,6 @@ bool DynamicManager::mt_Load_Resource(const std::string& reference_file, std::un
                     l_Creature->mt_Set_Sprite(l_Sprite_Id);
                 }
             }
-
-            l_Creature->m_Speed = 4.0f;
             resource.reset(l_Creature);
             l_b_Ret = true;
         }

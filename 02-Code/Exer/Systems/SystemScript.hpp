@@ -17,6 +17,7 @@ public:
     bool m_User_Ctrl;
     bool m_Light_Ctrl;
     bool m_Camera_Ctrl;
+    bool m_Check_Dyn_Collision;
 
 private:
     std::list<std::unique_ptr<Command>> m_Commands;

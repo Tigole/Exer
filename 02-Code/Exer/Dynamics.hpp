@@ -39,6 +39,7 @@ public:
 
 struct GameplayData_Aventure
 {
+    GameplayData_Aventure() : m_Psy(10), m_Psy_Max(10), m_Physic_per100(50), m_Social_per100(50), m_Mental_per100(50) {}
     int m_Psy;
     int m_Psy_Max;
 
@@ -49,8 +50,11 @@ struct GameplayData_Aventure
 
 struct GameplayData
 {
+    GameplayData() : m_Health(10), m_Health_Max(10), m_Movement(5.0f), m_Data_Aventure(), m_Skills() {}
     int m_Health;
     int m_Health_Max;
+
+    float m_Movement;
 
     GameplayData_Aventure m_Data_Aventure;
     std::vector<Resource<ISkill>> m_Skills;
@@ -60,11 +64,56 @@ enum class CreatureState
 {
     Idle,
     Moving,
+    Speaking,
     Dead,
 };
 
 class DynamicManager;
+class Creature;
 
+class Creature_Control
+{
+public:
+    Creature_Control(Creature* tgt);
+    void mt_Update(float elapsed_time);
+
+protected:
+    virtual float mt_On_Decide(void) = 0;
+
+    Creature* m_Tgt;
+
+private:
+    float m_Accumulated_Time;
+    float m_Threshold;
+};
+
+class Creature_Control_AI_Square : public Creature_Control
+{
+public:
+    Creature_Control_AI_Square(Creature* tgt);
+
+    float mt_On_Decide(void);
+
+    int m_Threshold_Idle_To_Move_Min_ms;
+    int m_Threshold_Idle_To_Move_Max_ms;
+    int m_Threshold_Move_To_Idle_Min_ms;
+    int m_Threshold_Move_To_Idle_Max_ms;
+
+    sf::FloatRect m_Square;
+};
+
+class Creature_Control_AI_Rand : public Creature_Control
+{
+public:
+    Creature_Control_AI_Rand(Creature* tgt);
+
+    float mt_On_Decide(void);
+
+    int m_Threshold_Idle_To_Move_Min_ms;
+    int m_Threshold_Idle_To_Move_Max_ms;
+    int m_Threshold_Move_To_Idle_Min_ms;
+    int m_Threshold_Move_To_Idle_Max_ms;
+};
 
 class Creature : public Dynamic
 {
@@ -74,7 +123,7 @@ public:
 
     ~Creature();
 
-    //friend DynamicManager;
+    std::unique_ptr<Creature_Control> m_AI;
 
     void mt_Draw(sf::RenderTarget& target, sf::RenderStates state) override;
     void mt_Update(float elapsed_time) override;
@@ -90,10 +139,13 @@ public:
     GameplayData m_Gameplay_Data;
     float m_Speed;
     sf::Color m_Dialog_Color;
+    std::vector<sf::String> m_Dialog;
 protected:
     Resource<SpriteSheetAnimator> m_Sprite;
     sf::IntRect m_Sprite_Rect;
     SpriteSheetAnimatorData m_Sprite_Data;
+
+public:
     CreatureState m_State;
 };
 

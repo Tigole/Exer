@@ -114,7 +114,7 @@ void GameState_Game::mt_Handle_Event(sf::Event& event)
                             if (!l_test)
                                 l_test = Context::smt_Get().m_Engine->m_Map->mt_On_Interaction(Context::smt_Get().m_Engine->m_Dyn, l_d, InteractionNature::Talking);
                             if (!l_test)
-                                l_d->mt_OnInteract(Context::smt_Get().m_Engine->m_Player);
+                                l_d->mt_OnInteract(l_Player);
                         }
                         else
                         {
@@ -149,8 +149,50 @@ void GameState_Game::mt_Update(float delta_time_s)
     {
         if (obj->m_Solid_Map == true)
         {
+            float l_Border = 0.1f;
+            if (obj->m_Vel.x <= 0.0f)
+            {
+                if (    Context::smt_Get().m_Engine->m_Map->mt_Is_Solid(new_pos.x, obj->m_Pos.y + l_Border)
+                    ||  Context::smt_Get().m_Engine->m_Map->mt_Is_Solid(new_pos.x, obj->m_Pos.y + (1.0f - l_Border)))
+                {
+                    new_pos.x = (int)new_pos.x + 1;
+                    obj->m_Vel.x = 0.0f;
+                }
+            }
+            else
+            {
+                if (    Context::smt_Get().m_Engine->m_Map->mt_Is_Solid(new_pos.x + (1.0f), obj->m_Pos.y + l_Border)
+                    ||  Context::smt_Get().m_Engine->m_Map->mt_Is_Solid(new_pos.x + (1.0f), obj->m_Pos.y + (1.0f - l_Border)))
+                {
+                    new_pos.x = (int)new_pos.x;
+                    obj->m_Vel.x = 0.0f;
+                }
+            }
+
+            if (obj->m_Vel.y <= 0.0f)
+            {
+                if (    Context::smt_Get().m_Engine->m_Map->mt_Is_Solid(new_pos.x + l_Border, new_pos.y)
+                    ||  Context::smt_Get().m_Engine->m_Map->mt_Is_Solid(new_pos.x + (1.0f - l_Border), new_pos.y))
+                {
+                    new_pos.y = (int)new_pos.y + 1;
+                    obj->m_Vel.y = 0.0f;
+                }
+            }
+            else
+            {
+                if (    Context::smt_Get().m_Engine->m_Map->mt_Is_Solid(new_pos.x + l_Border, new_pos.y + 1.0f)
+                    ||  Context::smt_Get().m_Engine->m_Map->mt_Is_Solid(new_pos.x + (1.0f - l_Border), new_pos.y + 1.0f))
+                {
+                    new_pos.y = (int)new_pos.y;
+                    obj->m_Vel.y = 0.0f;
+                }
+            }
+
+
+            /*
             float l_Margin = 0.9f;
-            if (obj->m_Vel.x < 0.0f)
+
+            if (obj->m_Vel.x <= 0.0f)
             {
                 if (    Context::smt_Get().m_Engine->m_Map->mt_Is_Solid(new_pos.x, obj->m_Pos.y)
                     ||  Context::smt_Get().m_Engine->m_Map->mt_Is_Solid(new_pos.x, obj->m_Pos.y + l_Margin))
@@ -169,7 +211,7 @@ void GameState_Game::mt_Update(float delta_time_s)
                 }
             }
 
-            if (obj->m_Vel.y < 0.0f)
+            if (obj->m_Vel.y <= 0.0f)
             {
                 if (    Context::smt_Get().m_Engine->m_Map->mt_Is_Solid(new_pos.x, new_pos.y)
                     ||  Context::smt_Get().m_Engine->m_Map->mt_Is_Solid(new_pos.x + l_Margin, new_pos.y))
@@ -186,7 +228,7 @@ void GameState_Game::mt_Update(float delta_time_s)
                     new_pos.y = (int)new_pos.y;
                     obj->m_Vel.y = 0.0f;
                 }
-            }
+            }*/
         }
     };
     std::function<void(sf::Vector2f& new_pos, Dynamic* obj)> l_fn_Handle_Dyn_Collision = [&](sf::Vector2f& new_pos, Dynamic* obj)
@@ -228,7 +270,7 @@ void GameState_Game::mt_Update(float delta_time_s)
                         sf::FloatRect l_Rect1(obj->mt_Get_Hit_Box());
                         sf::FloatRect l_Rect2(l_Dyn->mt_Get_Hit_Box());
 
-                        if ((Context::smt_Get().m_Engine->m_Script.m_User_Ctrl == true) && (obj->mt_Get_Hit_Box().contains(l_Dyn->m_Pos)))
+                        if ((Context::smt_Get().m_Engine->m_Script.m_Check_Dyn_Collision == true) && (obj->mt_Get_Hit_Box().contains(l_Dyn->m_Pos)))
                         {
                             bool l_Processed(false);
 
@@ -277,8 +319,6 @@ void GameState_Game::mt_Update(float delta_time_s)
         l_Obj->mt_Update(delta_time_s);
     }
 
-    Context::smt_Get().m_Engine->m_Script.mt_Process_Command(delta_time_s);
-
     auto i = std::remove_if(Context::smt_Get().m_Engine->m_System_Quest.m_Quests.begin(), Context::smt_Get().m_Engine->m_System_Quest.m_Quests.end(), [](const Resource<Quest>& q){return q->m_Completed == true;});
     if (i != Context::smt_Get().m_Engine->m_System_Quest.m_Quests.end())
     {
@@ -291,6 +331,9 @@ void GameState_Game::mt_Update(float delta_time_s)
     {
         Context::smt_Get().m_Engine->mt_Set_Camera_Center(Context::smt_Get().m_Engine->m_Map->m_Tileset->mt_Cell_To_Pixel(Context::smt_Get().m_Engine->m_Player->m_Pos));
     }
+
+    Context::smt_Get().m_Engine->m_Script.mt_Process_Command(delta_time_s);
+
     m_Dialog.mt_Update(delta_time_s);
     m_Dialog.m_Dialog_Pos = Context::smt_Get().m_Engine->mt_Get_Camera_View().getCenter();
     m_Dialog.m_Dialog_Pos.y = Context::smt_Get().m_Engine->mt_Get_Camera_View().getSize().x / 2;

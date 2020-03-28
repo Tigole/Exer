@@ -19,6 +19,14 @@ std::ostream& operator<<(std::ostream& o, GameStateType gs)
         o << "Skills"; break;
     case GameStateType::Game_Over:
         o << "Game_Over"; break;
+    case GameStateType::EndGame:
+        o << "EndGame"; break;
+    case GameStateType::Close:
+        o << "Close"; break;
+    case GameStateType::Choose_Class:
+        o << "Choose_Class"; break;
+    default:
+        o << "???"; break;
     }
     return o;
 }
@@ -28,7 +36,6 @@ std::ostream& operator<<(std::ostream& o, GameStateType gs)
 void fn_Main(void)
 {
     GameEngine l_Game;
-
 
     if (!Context::smt_Get().m_Packer.mt_Parse("Assets.jaja"))
     {
@@ -81,6 +88,8 @@ void GameEngine::mt_Create(void)
     m_Wnd.create(sf::VideoMode(l_Tile_Count.x * 32, l_Tile_Count.y * 32), "Exer", sf::Style::Titlebar | sf::Style::Close);
     m_Camera_View = m_Wnd.getView();
 
+    m_Wnd.setMouseCursorVisible(false);
+
     m_State.m_Current = GameStateType::Game;
     m_State.m_Previous = GameStateType::Game;
 
@@ -91,6 +100,7 @@ void GameEngine::mt_Create(void)
     m_Skill_State.mt_Create();
     m_Inventory_State.mt_Create();
     m_Creation_State.mt_Create();
+    m_EndGame_State.mt_Create();
 
     m_Sky_Color = sf::Color::White;
     m_Sky_Color_Accumulated_Time_s = 0.0f;
@@ -135,6 +145,12 @@ void GameEngine::mt_Handle_Event(sf::Event& event)
             break;
         case GameStateType::Choose_Class:
             m_Creation_State.mt_Handle_Event(event);
+            break;
+        case GameStateType::EndGame:
+            m_EndGame_State.mt_Handle_Event(event);
+            break;
+        case GameStateType::Close:
+            m_b_Close_Window = true;
             break;
         case GameStateType::COUNT:
         default:
@@ -198,6 +214,11 @@ void GameEngine::mt_Update(float delta_time_s)
     case GameStateType::Choose_Class:
         m_Creation_State.mt_Update(delta_time_s);
         break;
+    case GameStateType::EndGame:
+        m_EndGame_State.mt_Update(delta_time_s);
+        break;
+    case GameStateType::Close:
+        break;
     case GameStateType::COUNT:
     default:
         m_State = GameStateType::Game;
@@ -226,6 +247,11 @@ void GameEngine::mt_Draw(sf::RenderTarget& target)
     case GameStateType::Choose_Class:
         m_Creation_State.mt_Draw(target);
         break;
+    case GameStateType::EndGame:
+        m_EndGame_State.mt_Draw(target);
+        break;
+    case GameStateType::Close:
+        break;
     case GameStateType::COUNT:
     default:
         m_State = GameStateType::Game;
@@ -248,6 +274,12 @@ void GameEngine::mt_On_Exit(void)
     {
         m_Music->stop();
         Context::smt_Get().m_Musics.mt_Release(m_Music);
+        m_Inventory_State.mt_Destroy();
+        m_Skill_State.mt_Destroy();
+        m_Game_State.mt_Destroy();
+        m_Quest_State.mt_Destroy();
+        m_Creation_State.mt_Destroy();
+        m_EndGame_State.mt_Destroy();
     }
 }
 
@@ -297,12 +329,6 @@ void GameEngine::mt_Change_Map(const std::string& map_id, const sf::Vector2f& pl
         q->mt_Populate_Dynamics(m_Dyn, m_Map->m_Name);
 
     m_Player = dynamic_cast<Creature*>(m_Dyn[0].m_Resource);
-
-    std::cout << "mt_Change_Map\n";
-    for (auto& d : m_Dyn)
-    {
-        std::cout << "\t\"" << d->m_Name << "\"\n";
-    }
 }
 
 void GameEngine::mt_New_Game(const std::string& file)
@@ -310,7 +336,7 @@ void GameEngine::mt_New_Game(const std::string& file)
     sf::Vector2f l_Player_Pos(18.0f, 19.0f);
     m_Dyn.push_back(Context::smt_Get().m_Dynamics.mt_Get_Resource("Player"));
 
-    //mt_Add_Quest("Main_Quest");
+    m_System_Quest.mt_Add_Quest("Main_Quest");
     m_System_Quest.mt_Add_Quest("Test");
     m_System_Quest.mt_Add_Quest("Tutoriel");
 
@@ -320,15 +346,16 @@ void GameEngine::mt_New_Game(const std::string& file)
     /// Apres troll
     //l_Player_Pos = {81.0f, 58.0f};
 
+    /// Bob
+    //l_Player_Pos = {97.0f, 101.0f};
+
     /// Mage
     //l_Player_Pos = {76.0f, 20.0f};
 
-    mt_Change_Map("Road", l_Player_Pos);
+    /// Fin
+    //l_Player_Pos = {144.0f, 50.0f};
 
-    for (std::size_t ii = 0; ii < m_Dyn.size(); ii++)
-    {
-        std::cout << ii << ": " << m_Dyn[ii]->m_Pos.x << ' ' << m_Dyn[ii]->m_Pos.y << '\n';
-    }
+    mt_Change_Map("Road", l_Player_Pos);
 
     m_Inventory.mt_Change_Item_Count("LifePotion", 20, ItemType::Edible);
     m_Inventory.mt_Change_Item_Count("PsyPotion", 20, ItemType::Edible);
@@ -339,8 +366,8 @@ void GameEngine::mt_New_Game(const std::string& file)
     m_Script.mt_Add_Command(new Command_ShowDialog({"_Contrôles du jeu :_ \nValide tes actions avec #F4661B *Espace* #white \nAnnule avec #F4661B *Echap* #white \nDéplace toi avec les #F4661B *flèches directionnelles* #white"}));
     m_Script.mt_Add_Command(new Command_Music("Presentation", 2.0f));
     m_Script.mt_Add_Command(new Command_Wait(2.0f));
-    m_Script.mt_Add_Command(new Command_ShowDialog({"Bienvenu dans Exer.",
-                                                   "Après plusieurs mois de développement,\nje suis fier de présenter ce 1er RPG\nqui me sert de base pour un autre jeu plus développé.",
+    m_Script.mt_Add_Command(new Command_ShowDialog({"Bienvenu dans " + fn_Command_Key("Exer", sf::Color::White) + ".",
+                                                   "Après plusieurs mois de développement,\nje suis fier de présenter ce 1er RPG.",
                                                    "Mais assez passé de temps en présentations,\nà toi de jouer !",
                                                    "Bonne aventure !",
                                                    "JaJa"}));
@@ -403,13 +430,7 @@ sf::Music* GameEngine::mt_Get_Music(void)
 
 void GameEngine::mt_End_Game(void)
 {
-    m_b_Close_Window = true;
-
-    m_Inventory_State.mt_Destroy();
-    m_Skill_State.mt_Destroy();
-    m_Game_State.mt_Destroy();
-    m_Quest_State.mt_Destroy();
-    m_Creation_State.mt_Destroy();
+    m_State = GameStateType::EndGame;
 }
 
 void GameEngine::mt_End_Demo(void)

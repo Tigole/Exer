@@ -31,6 +31,22 @@ std::ostream& operator<<(std::ostream& o, SystemFightFighterStates s)
     return o;
 }
 
+void FightLogic::mt_Update_Movement(float elapsed_time_s)
+{
+    sf::Vector2f l_New_Pos;
+
+    l_New_Pos = m_Tgt->m_Tgt->m_Pos;
+
+    m_Move_Distance_Left -= fn_Distance(l_New_Pos, m_Movement_Previous_Pos);
+
+    if (m_Move_Distance_Left <= 0.0f)
+    {
+        m_Tgt->m_Tgt->m_Desired_Vel = {0.0f, 0.0f};
+        m_State = SystemFightFighterStates::Done;
+    }
+
+    m_Movement_Previous_Pos = l_New_Pos;
+}
 
 void FightLogic_Human::mt_Handle_Event(sf::Event& event)
 {
@@ -161,20 +177,25 @@ void FightLogic_Human::mt_Handle_Event(sf::Event& event)
 
 void FightLogic_Human::mt_Update(float elapsed_time_s)
 {
+    m_Accumulated_Time += elapsed_time_s;
     switch(m_State.m_Current)
     {
     case SystemFightFighterStates::Choose_Action:
         if (m_State.mt_On_Entry())
         {
+            std::cout << "FightLogic_Human::mt_Update\n";
             std::vector<DialogChoice> l_Choices;
 
-            l_Choices.push_back(DialogChoice("Attaquer", &FightLogic_Human::mt_On_Skill, this));
+            if (m_Actions_Remaining > 1)
+            {
+                l_Choices.push_back(DialogChoice("Attaquer", &FightLogic_Human::mt_On_Skill, this));
+            }
             l_Choices.push_back(DialogChoice("Se déplacer", &FightLogic_Human::mt_On_Move, this));
             if (Context::smt_Get().m_Engine->m_Inventory.mt_Get_Item_Count(ItemType::Edible) > 0)
             {
                 l_Choices.push_back(DialogChoice("Objet", &FightLogic_Human::mt_On_Object, this));
             }
-            //l_Choices.push_back(DialogChoice("Fuir", &FightLogic_Human::mt_On_RunAway, this));
+            l_Choices.push_back(DialogChoice("Passer", &FightLogic_Human::mt_On_Pass, this));
 
             m_Dialog->mt_Show_Choice(l_Choices);
 
@@ -194,22 +215,7 @@ void FightLogic_Human::mt_Update(float elapsed_time_s)
         }
         break;
     case SystemFightFighterStates::Move:
-        {
-        sf::Vector2f l_New_Pos;
-
-        l_New_Pos = m_Tgt->m_Tgt->m_Pos;
-
-        m_Move_Distance_Left -= std::sqrt(std::pow(l_New_Pos.x - m_Movement_Previous_Pos.x, 2.0f) + std::pow(l_New_Pos.y - m_Movement_Previous_Pos.y , 2.0f));
-
-        if (m_Move_Distance_Left <= 0.0f)
-        {
-            m_Tgt->m_Tgt->m_Desired_Vel = {0.0f, 0.0f};
-            m_State = SystemFightFighterStates::Done;
-        }
-
-        m_Movement_Previous_Pos = l_New_Pos;
-
-        }
+        mt_Update_Movement(elapsed_time_s);
         break;
     case SystemFightFighterStates::Choose_Object:
         Context::smt_Get().m_Engine->m_Inventory_State.mt_Update(elapsed_time_s);
@@ -245,6 +251,7 @@ void FightLogic_Human::mt_Draw(sf::RenderTarget& target)
         sf::RectangleShape l_Rect;
 
         l_Rect.setFillColor(sf::Color(255, 255, 255, 127+32));
+        l_Rect.setFillColor(fn_Interpolate(&m_Interpolator, m_Accumulated_Time, 2.0f, sf::Color(188, 32, 1, 127+32), sf::Color(188, 32, 1, 127)));
         l_Rect.setPosition(l_Pos);
         l_Rect.setSize(Context::smt_Get().m_Engine->m_Map->m_Tileset->mt_Cell_To_Pixel());
 
@@ -257,8 +264,8 @@ void FightLogic_Human::mt_Draw(sf::RenderTarget& target)
         l_Skill_Distance.setPosition(l_Pos);
         l_Skill_Distance.setRadius(m_Player_Skill->m_Distance_Max * Context::smt_Get().m_Engine->m_Map->m_Tileset->mt_Cell_To_Pixel().x);
         l_Skill_Distance.setFillColor(sf::Color::Transparent);
-        l_Skill_Distance.setOutlineColor(sf::Color::White);
-        l_Skill_Distance.setOutlineThickness(3.0f);
+        l_Skill_Distance.setOutlineColor(sf::Color(188, 32, 1, 127+32));
+        l_Skill_Distance.setOutlineThickness(2.0f);
         l_Skill_Distance.setOrigin(l_Skill_Distance.getRadius(), l_Skill_Distance.getRadius());
 
         target.draw(l_Skill_Distance);
@@ -297,8 +304,8 @@ void FightLogic_Human::mt_Draw(sf::RenderTarget& target)
 
         l_Distance_Left.setRadius(Context::smt_Get().m_Engine->m_Map->m_Tileset->mt_Cell_To_Pixel(sf::Vector2f(m_Move_Distance_Left, 1.0f)).x);
         l_Distance_Left.setFillColor(sf::Color::Transparent);
-        l_Distance_Left.setOutlineColor(sf::Color::Black);
-        l_Distance_Left.setOutlineThickness(3.0f);
+        l_Distance_Left.setOutlineColor(sf::Color(0, 100, 0, 127+32));
+        l_Distance_Left.setOutlineThickness(2.0f);
         l_Distance_Left.setOrigin(l_Distance_Left.getRadius(), l_Distance_Left.getRadius());
 
         l_Distance_Left.setPosition(Context::smt_Get().m_Engine->m_Map->m_Tileset->mt_Cell_To_Pixel(m_Tgt->m_Tgt->m_Pos + sf::Vector2f(0.5f, 0.5f)));
@@ -321,7 +328,7 @@ void FightLogic_Human::mt_On_Skill(void)
 
 void FightLogic_Human::mt_On_Move(void)
 {
-    m_Move_Distance_Left = 5.0f;
+    m_Move_Distance_Left = m_Tgt->m_Tgt->m_Gameplay_Data.m_Movement;
     m_State = SystemFightFighterStates::Move;
     m_Movement_Previous_Pos = m_Tgt->m_Tgt->m_Pos;
     m_Actions_Remaining -= 1;
@@ -331,7 +338,13 @@ void FightLogic_Human::mt_On_Object(void)
 {
     m_State = SystemFightFighterStates::Choose_Object;
     Context::smt_Get().m_Engine->m_Inventory_State.mt_Lock_Type(ItemType::Edible);
-    m_Actions_Remaining -= 2;
+    m_Actions_Remaining -= 1;
+}
+
+void FightLogic_Human::mt_On_Pass(void)
+{
+    m_Actions_Remaining = 0;
+    m_State = SystemFightFighterStates::Done;
 }
 
 
@@ -363,8 +376,51 @@ void FightAI_Dumb::mt_Update(float elapsed_time_s)
         }
         else
         {
+            m_Tgt->m_Target_Move = nullptr;
+            for (std::size_t ii = 0; ii < m_System_Fight->m_Fighters.size(); ii++)
+            {
+                FightCreature& l_Creature = m_System_Fight->m_Fighters[ii];
+                if (    (l_Creature.m_Party_Id != this->m_Tgt->m_Party_Id))
+                {
+                    if (m_Tgt->m_Target_Move == nullptr)
+                    {
+                        m_Tgt->m_Target_Move = &m_System_Fight->m_Fighters[ii];
+                    }
+                    else if (fn_Distance(m_Tgt->m_Tgt->m_Pos, l_Creature.m_Tgt->m_Pos) < fn_Distance(m_Tgt->m_Tgt->m_Pos, m_Tgt->m_Target_Move->m_Tgt->m_Pos))
+                    {
+                        m_Tgt->m_Target_Move = &m_System_Fight->m_Fighters[ii];
+                    }
+                }
+            }
+            m_State = SystemFightFighterStates::Move;
+            m_Movement_Previous_Pos = m_Tgt->m_Tgt->m_Pos;
+            m_Tgt->m_Tgt->m_Desired_Vel = (m_Tgt->m_Target_Move->m_Tgt->m_Pos - m_Tgt->m_Tgt->m_Pos);
+            m_Tgt->m_Tgt->m_Desired_Vel /= (float)sqrt(std::pow(m_Tgt->m_Tgt->m_Desired_Vel.x, 2.0f) + std::pow(m_Tgt->m_Tgt->m_Desired_Vel.y, 2.0f));
+            m_Tgt->m_Tgt->m_Desired_Vel *= m_Tgt->m_Tgt->m_Speed;
+            m_Actions_Remaining -= 1;
+        }
+    }
+    else if (m_State == SystemFightFighterStates::Move)
+    {
+        std::cout << m_Tgt->m_Tgt->m_Vel << '\n';
+        if (    (fabs(m_Tgt->m_Tgt->m_Desired_Vel.x - m_Tgt->m_Tgt->m_Vel.x) > 0.01f)
+            &&  (fabs(m_Tgt->m_Tgt->m_Desired_Vel.y - m_Tgt->m_Tgt->m_Vel.y) > 0.01f))
+        {
+            std::cout << "FightAI_Dumb::mt_Update: Collision detected\n";
+        }
+
+        m_Tgt->m_Tgt->m_Desired_Vel = (m_Tgt->m_Target_Move->m_Tgt->m_Pos - m_Tgt->m_Tgt->m_Pos);
+        m_Tgt->m_Tgt->m_Desired_Vel /= (float)sqrt(std::pow(m_Tgt->m_Tgt->m_Desired_Vel.x, 2.0f) + std::pow(m_Tgt->m_Tgt->m_Desired_Vel.y, 2.0f));
+        m_Tgt->m_Tgt->m_Desired_Vel *= m_Tgt->m_Tgt->m_Speed;
+
+        if (fn_Distance(m_Tgt->m_Tgt->m_Pos, m_Tgt->m_Target_Move->m_Tgt->m_Pos) <= 1.1f)
+        {
+            m_Tgt->m_Tgt->m_Desired_Vel = {0.0f, 0.0f};
             m_State = SystemFightFighterStates::Done;
-            m_Actions_Remaining -= 2;
+        }
+        else
+        {
+            mt_Update_Movement(elapsed_time_s);
         }
     }
     else if (m_State == SystemFightFighterStates::Make_Action)
@@ -397,7 +453,15 @@ ISkill* FightAI_Dumb::mt_Select_Skill(void)
 }
 
 
+ISkill* FightAI_Mage::mt_Select_Skill(void)
+{
+    ISkill* l_Ret(nullptr);
+    std::size_t l_Skill_Index = rand() % m_Tgt->m_Tgt->m_Gameplay_Data.m_Skills.size();
 
+    l_Ret = m_Tgt->m_Tgt->m_Gameplay_Data.m_Skills[l_Skill_Index].m_Resource;
+
+    return l_Ret;
+}
 
 
 
@@ -411,15 +475,30 @@ Command_Fight_Use_Object::Command_Fight_Use_Object(Item* item, Creature* tgt)
 
 void Command_Fight_Use_Object::mt_Start(void)
 {
+    IAnimation* l_Animation;
+    Tileset* l_Tileset = Context::smt_Get().m_Engine->m_Map->m_Tileset.m_Resource;
+    SystemAnimation* l_Anims = Context::smt_Get().m_System_Animation;
+
     if (m_Item != nullptr)
     {
-        m_Item->mt_OnUse(m_Tgt);
+        l_Animation = new Animation(l_Tileset->mt_Cell_To_Pixel(m_Tgt->m_Pos + sf::Vector2f(0.5f, 0.5f)),
+                                    l_Tileset->mt_Cell_To_Pixel(sf::Vector2f(2.0f, 2.0f)),
+                                    Context::smt_Get().m_Animations.mt_Get_Resource(m_Item->m_Anim_Id));
+
+        m_Anim_Id = l_Anims->mt_Create_List(false);
+
+        l_Anims->mt_Add_Animation(m_Anim_Id, {l_Animation});
     }
 }
 
 void Command_Fight_Use_Object::mt_Update(float elapsed_time)
 {
-    m_Completed = true;
+    SystemAnimation* l_Anims = Context::smt_Get().m_System_Animation;
+    if (l_Anims->mt_Is_Ended(m_Anim_Id) == true)
+    {
+        m_Item->mt_OnUse(m_Tgt);
+        m_Completed = true;
+    }
 }
 
 
@@ -541,6 +620,12 @@ void SystemFight::mt_Update(float delta_time_s)
 
     switch (m_State.m_Current)
     {
+    case SystemFightStates::Start:
+        if (m_Script.m_User_Ctrl == true)
+        {
+            m_State.m_Current = SystemFightStates::Ordering;
+        }
+        break;
     case SystemFightStates::Ordering:
         mt_Update_Ordering(delta_time_s);
         break;
@@ -569,9 +654,10 @@ void SystemFight::mt_Draw(sf::RenderTarget& target)
 {
     sf::RectangleShape l_Edge;
     sf::RectangleShape l_Fill;
+    sf::Uint8 l_Alpha = 175;
 
     l_Edge.setFillColor(sf::Color::Transparent);
-    l_Edge.setOutlineColor(sf::Color::Black);
+    l_Edge.setOutlineColor(sf::Color(0, 0, 0, l_Alpha));
     l_Edge.setOutlineThickness(2.0f);
     l_Edge.setSize({32.0f, 3.0f});
     l_Fill.setSize(l_Edge.getSize());
@@ -586,7 +672,7 @@ void SystemFight::mt_Draw(sf::RenderTarget& target)
         l_Pos = Context::smt_Get().m_Engine->m_Map->m_Tileset->mt_Cell_To_Pixel(l_Pos);
 
         l_Ratio = c.m_Tgt->m_Gameplay_Data.m_Data_Aventure.m_Psy / (float)c.m_Tgt->m_Gameplay_Data.m_Data_Aventure.m_Psy_Max;
-        l_Fill.setFillColor(sf::Color(255, 0, 255));
+        l_Fill.setFillColor(sf::Color(255, 0, 255, l_Alpha));
         l_Fill.setScale(l_Ratio, 1.0f);
         l_Edge.setPosition(l_Pos + sf::Vector2f(0.0f, -6.0f));
         l_Fill.setPosition(l_Pos + sf::Vector2f(0.0f, -6.0f));
@@ -594,7 +680,7 @@ void SystemFight::mt_Draw(sf::RenderTarget& target)
         target.draw(l_Fill);
 
         l_Ratio = c.m_Tgt->m_Gameplay_Data.m_Health / (float)c.m_Tgt->m_Gameplay_Data.m_Health_Max;
-        l_Fill.setFillColor(sf::Color::Red);
+        l_Fill.setFillColor(sf::Color(255, 0, 0, l_Alpha));
         l_Fill.setScale(l_Ratio, 1.0f);
         l_Edge.setPosition(l_Pos + sf::Vector2f(0.0f, -12.0f));
         l_Fill.setPosition(l_Pos + sf::Vector2f(0.0f, -12.0f));
@@ -743,7 +829,7 @@ void SystemFight::mt_Start_Fight(const std::map<int, std::vector<CommandFightCre
 
     m_pfn_On_Victory = pfn_On_Victory;
 
-    m_State = SystemFightStates::Ordering;
+    m_State = SystemFightStates::Start;
 
     m_Current_Fighter = 0;
 

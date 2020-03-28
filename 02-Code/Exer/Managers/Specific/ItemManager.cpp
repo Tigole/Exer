@@ -87,13 +87,15 @@ bool ItemFactory::mt_Create_Edible(const std::string& reference_file, Item*& res
     {
         std::string l_Line;
 
+        l_Stream.str(std::string(l_File.mt_To_String()));
+
         l_Item = new Item_Edible;
 
         while(fn_Get_Line(l_Stream, l_Line))
         {
             std::stringstream l_ss(l_Line);
 
-            l_ss >> l_Line;
+            std::getline(l_ss, l_Line, ' ');
             if (l_Line == "NAME")
             {
                 std::getline(l_ss, l_Item->m_Name, '\n');
@@ -121,6 +123,10 @@ bool ItemFactory::mt_Create_Edible(const std::string& reference_file, Item*& res
             else if (l_Line == "TYPE")
             {
                 l_ss >> (int&)l_Item->m_Type;
+            }
+            else if (l_Line == "ANIM")
+            {
+                std::getline(l_ss, l_Item->m_Anim_Id, '\n');
             }
         }
 

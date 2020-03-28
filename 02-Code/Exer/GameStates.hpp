@@ -18,6 +18,9 @@ enum class GameStateType
 
     Game_Over,
 
+    EndGame,
+    Close,
+
     COUNT
 };
 
@@ -108,6 +111,15 @@ public:
     sf::Vector2f m_Size = {3.0f, 4.0f};
 };
 
+class GameState_EndGame : public GameState
+{
+public:
+    void mt_Create(void) override;
+    void mt_Destroy(void) override;
+    void mt_Handle_Event(sf::Event& event) override;
+    void mt_Update(float delta_time_s) override;
+    void mt_Draw(sf::RenderTarget& target) override;
+};
 
 
 #endif // _GAME_STATES_HPP

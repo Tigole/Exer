@@ -19,6 +19,8 @@ public:
     bool m_Started;
     bool m_Completed;
 
+    bool m_Check_Dyn_Collision;
+
     virtual void mt_Start(void) = 0;
     virtual void mt_Update(float elapsed_time) = 0;
 };
@@ -28,7 +30,7 @@ public:
 class Command_MoveOffset : public Command
 {
 public:
-    Command_MoveOffset(Creature* tgt, const std::vector<sf::Vector2i>& offsets, float speed);
+    Command_MoveOffset(Creature* tgt, const std::vector<sf::Vector2f>& offsets, float speed, bool check_dyn_collision);
 
     void mt_Start(void) override;
     void mt_Update(float elapsed_time) override;
@@ -36,7 +38,7 @@ public:
     sf::Vector2f mt_Compute_Vel(const sf::Vector2f& offset, float speed);
 
     Creature* m_Tgt;
-    std::vector<sf::Vector2i> m_Offsets;
+    std::vector<sf::Vector2f> m_Offsets;
     std::size_t m_Current_Offset;
     sf::Vector2f m_Old_Pos;
     bool m_X_Done;
@@ -54,7 +56,7 @@ public:
 class Command_MoveTo : public Command
 {
 public:
-    Command_MoveTo(Creature* obj, const sf::Vector2f& tgt_pos_cell, float speed);
+    Command_MoveTo(Creature* obj, const sf::Vector2f& tgt_pos_cell, float speed, bool check_dyn_collision);
 
     void mt_Start(void) override;
     void mt_Update(float elapsed_time) override;
@@ -197,6 +199,18 @@ public:
     sf::Vector2f m_Cmd;
     bool m_Direction;
     const Creature* m_Other;
+};
+
+class Command_Creature_Set_State : public Command
+{
+public:
+    Command_Creature_Set_State(Creature* tgt, CreatureState new_state);
+
+    void mt_Start(void) override;
+    void mt_Update(float elapsed_time) override;
+
+    Creature* m_Tgt;
+    CreatureState m_State;
 };
 
 class Command_ChestOpen : public Command

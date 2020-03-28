@@ -5,7 +5,8 @@
 
 Command::Command()
  :  m_Started(false),
-    m_Completed(false)
+    m_Completed(false),
+    m_Check_Dyn_Collision(false)
 {}
 
 Command::~Command(){}
@@ -13,11 +14,13 @@ Command::~Command(){}
 
 
 
-Command_MoveOffset::Command_MoveOffset(Creature* tgt, const std::vector<sf::Vector2i>& offsets, float speed)
+Command_MoveOffset::Command_MoveOffset(Creature* tgt, const std::vector<sf::Vector2f>& offsets, float speed, bool check_dyn_collision)
  :  m_Tgt(tgt),
     m_Offsets(offsets),
     m_Obj_Speed(speed)
-{}
+{
+    m_Check_Dyn_Collision = check_dyn_collision;
+}
 
 void Command_MoveOffset::mt_Start(void)
 {
@@ -37,20 +40,19 @@ void Command_MoveOffset::mt_Start(void)
 
 void Command_MoveOffset::mt_Update(float elapsed_time)
 {
+    std::cout << "Command_MoveOffset::mt_Update : " << m_Tgt->m_Pos.x << " "
+              << m_Old_Pos.x + m_Offsets[m_Current_Offset].x << " "
+              << (m_Old_Pos.x + m_Offsets[m_Current_Offset].x) - m_Tgt->m_Pos.x << '\n';
     if (m_Tgt->m_Desired_Vel.x != 0.0f)
     {
-        if (m_Tgt->m_Vel.x == 0.0f)
-        {
-            //
-        }
-        if (m_Offsets[m_Current_Offset].x > 0.0f)
+        if (m_Offsets[m_Current_Offset].x >= 0.0f)
         {
             if ((m_Old_Pos.x + m_Offsets[m_Current_Offset].x) < m_Tgt->m_Pos.x)
             {
                 m_X_Done = true;
             }
         }
-        else if (m_Offsets[m_Current_Offset].x < 0.0f)
+        else if (m_Offsets[m_Current_Offset].x <= 0.0f)
         {
             if ((m_Old_Pos.x + m_Offsets[m_Current_Offset].x) > m_Tgt->m_Pos.x)
             {
@@ -66,19 +68,18 @@ void Command_MoveOffset::mt_Update(float elapsed_time)
     if (m_X_Done == true)
     {
         m_Tgt->m_Desired_Vel.x = 0.0f;
-        m_Tgt->m_Pos.x = (int)(m_Old_Pos.x + m_Offsets[m_Current_Offset].x);
     }
 
     if (m_Tgt->m_Desired_Vel.y != 0.0f)
     {
-        if (m_Offsets[m_Current_Offset].y > 0.0f)
+        if (m_Offsets[m_Current_Offset].y >= 0.0f)
         {
             if ((m_Old_Pos.y + m_Offsets[m_Current_Offset].y) < m_Tgt->m_Pos.y)
             {
                 m_Y_Done = true;
             }
         }
-        else if (m_Offsets[m_Current_Offset].y < 0.0f)
+        else if (m_Offsets[m_Current_Offset].y <= 0.0f)
         {
             if ((m_Old_Pos.y + m_Offsets[m_Current_Offset].y) > m_Tgt->m_Pos.y)
             {
@@ -92,7 +93,6 @@ void Command_MoveOffset::mt_Update(float elapsed_time)
     }
     if (m_Y_Done == true)
     {
-        m_Tgt->m_Pos.y = (int)(m_Old_Pos.y + m_Offsets[m_Current_Offset].y);
         m_Tgt->m_Desired_Vel.y = 0.0f;
     }
 
@@ -100,6 +100,8 @@ void Command_MoveOffset::mt_Update(float elapsed_time)
     //std::cout << m_Old_Pos.x + m_Offsets[m_Current_Offset].x - m_Tgt->m_Pos.x << '\t' << m_Old_Pos.y + m_Offsets[m_Current_Offset].y - m_Tgt->m_Pos.y << '\t';
     if ((m_X_Done == true) && (m_Y_Done == true))
     {
+        m_Tgt->m_Pos.x = (int)(m_Old_Pos.x + m_Offsets[m_Current_Offset].x);
+        m_Tgt->m_Pos.y = (int)(m_Old_Pos.y + m_Offsets[m_Current_Offset].y);
         m_Current_Offset++;
         m_Old_Pos = m_Tgt->m_Pos;
         m_X_Done = false;
@@ -156,27 +158,29 @@ sf::Vector2f Command_MoveOffset::mt_Compute_Vel(const sf::Vector2f& offset, floa
 
 
 
-Command_MoveTo::Command_MoveTo(Creature* obj, const sf::Vector2f& tgt_pos_cell, float speed)
+Command_MoveTo::Command_MoveTo(Creature* obj, const sf::Vector2f& tgt_pos_cell, float speed, bool check_dyn_collision)
  :  m_Obj(obj),
     m_Start_Pos(),
     m_Tgt_Pos(tgt_pos_cell),
     m_Accumulated_Time(0.0f),
     m_Obj_Speed(speed)
-{}
+{
+    m_Check_Dyn_Collision = check_dyn_collision;
+}
 
 void Command_MoveTo::mt_Start(void)
 {
-    std::vector<sf::Vector2i> l_Offsets;
+    std::vector<sf::Vector2f> l_Offsets;
     m_Start_Pos = m_Obj->m_Pos;
 
-    l_Offsets.push_back(sf::Vector2i(m_Tgt_Pos.x - m_Obj->m_Pos.x, m_Tgt_Pos.y - m_Obj->m_Pos.y));
+    l_Offsets.push_back(sf::Vector2f(m_Tgt_Pos.x - m_Obj->m_Pos.x, m_Tgt_Pos.y - m_Obj->m_Pos.y));
 
     for (std::size_t ii = 0; ii < l_Offsets.size(); ii++)
     {
-        std::cout << ii << ": " << l_Offsets[ii].x << " " << l_Offsets[ii].y << '\n';
+        std::cout << "Command_MoveTo::mt_Start ii=" << ii << " : " << l_Offsets[ii].x << " " << l_Offsets[ii].y << '\n';
     }
 
-    m_Offsets.reset(new Command_MoveOffset(m_Obj, l_Offsets, m_Obj_Speed));
+    m_Offsets.reset(new Command_MoveOffset(m_Obj, l_Offsets, m_Obj_Speed, false));
     m_Offsets->mt_Start();
 }
 
@@ -395,6 +399,26 @@ void Command_Creature_LookAt::mt_Update(float elapsed_time)
     }
     m_Completed = true;
 }
+
+
+
+
+Command_Creature_Set_State::Command_Creature_Set_State(Creature* tgt, CreatureState new_state)
+ :  m_Tgt(tgt), m_State(new_state)
+{}
+
+void Command_Creature_Set_State::mt_Start(void)
+{
+    m_Tgt->m_State = m_State;
+    m_Completed = true;
+}
+
+void Command_Creature_Set_State::mt_Update(float elapsed_time)
+{
+    m_Completed = true;
+}
+
+
 
 
 

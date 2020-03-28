@@ -6,15 +6,6 @@ void GameState_CreateCharacter::mt_Create(void)
 {
     ClassData l_Data;
 
-    l_Data.m_Class_Name = "Paladin";
-    l_Data.m_Class_Skill = "ThunderSword";
-    l_Data.m_Class_Description = "Le Paladin manie l'épée avec grâce et volupté.";
-    l_Data.m_Text_Color = sf::Color::Yellow;
-    l_Data.m_Sprite = Context::smt_Get().m_SpriteSheetAnimators.mt_Get_Resource("_Theo");
-    l_Data.m_GameplayData.m_Health_Max = 18;
-    l_Data.m_GameplayData.m_Data_Aventure.m_Psy_Max = 6;
-    m_Classes.push_back(l_Data);
-
     l_Data.m_Class_Name = "Lutteur";
     l_Data.m_Class_Skill = "EarthFist";
     l_Data.m_Class_Description = "Le lutteur affronte ses adversaires\nen utilisant sa puissance physique.";
@@ -24,13 +15,13 @@ void GameState_CreateCharacter::mt_Create(void)
     l_Data.m_GameplayData.m_Data_Aventure.m_Psy_Max = 8;
     m_Classes.push_back(l_Data);
 
-    l_Data.m_Class_Name = "Archer";
-    l_Data.m_Class_Skill = "IceArrow";
-    l_Data.m_Class_Description = "l'archer préfère attaquer ses ennemis à distance.\nIl ne supporte pas bien le contact.";
-    l_Data.m_Text_Color = sf::Color(100, 149, 237);
-    l_Data.m_Sprite = Context::smt_Get().m_SpriteSheetAnimators.mt_Get_Resource("_Shin");
-    l_Data.m_GameplayData.m_Health_Max = 14;
-    l_Data.m_GameplayData.m_Data_Aventure.m_Psy_Max = 10;
+    l_Data.m_Class_Name = "Paladin";
+    l_Data.m_Class_Skill = "ThunderSword";
+    l_Data.m_Class_Description = "Le Paladin manie l'épée avec grâce et volupté.";
+    l_Data.m_Text_Color = sf::Color::Yellow;
+    l_Data.m_Sprite = Context::smt_Get().m_SpriteSheetAnimators.mt_Get_Resource("_Theo");
+    l_Data.m_GameplayData.m_Health_Max = 18;
+    l_Data.m_GameplayData.m_Data_Aventure.m_Psy_Max = 6;
     m_Classes.push_back(l_Data);
 
     l_Data.m_Class_Name = "Mage";
@@ -40,6 +31,15 @@ void GameState_CreateCharacter::mt_Create(void)
     l_Data.m_Sprite = Context::smt_Get().m_SpriteSheetAnimators.mt_Get_Resource("_Bob");
     l_Data.m_GameplayData.m_Health_Max = 11;
     l_Data.m_GameplayData.m_Data_Aventure.m_Psy_Max = 13;
+    m_Classes.push_back(l_Data);
+
+    l_Data.m_Class_Name = "Archer";
+    l_Data.m_Class_Skill = "IceArrow";
+    l_Data.m_Class_Description = "l'archer préfère attaquer ses ennemis à distance.\nIl ne supporte pas bien le contact.";
+    l_Data.m_Text_Color = sf::Color(100, 149, 237);
+    l_Data.m_Sprite = Context::smt_Get().m_SpriteSheetAnimators.mt_Get_Resource("_Shin");
+    l_Data.m_GameplayData.m_Health_Max = 14;
+    l_Data.m_GameplayData.m_Data_Aventure.m_Psy_Max = 10;
     m_Classes.push_back(l_Data);
 
     m_Selected_Class = 0;
@@ -105,6 +105,7 @@ void GameState_CreateCharacter::mt_Handle_Event(sf::Event& event)
             l_Player->m_Gameplay_Data.m_Skills.push_back(Context::smt_Get().m_Skills.mt_Get_Resource("Hit"));
             l_Player->m_Name = m_Player_Name;
             l_Player->mt_Set_Sprite(*(m_Classes[m_Selected_Class].m_Sprite.m_Resource_Id));
+            Context::smt_Get().m_Engine->m_Player_Skill_Id = m_Classes[m_Selected_Class].m_Class_Skill;
             Context::smt_Get().m_Engine->m_State = GameStateType::Game;
 
             break;

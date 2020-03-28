@@ -282,8 +282,10 @@ void GameState_Item::mt_Handle_Event(sf::Event& event)
 
             if (l_Item != nullptr)
             {
-                if (l_Item->mt_OnUse(Context::smt_Get().m_Engine->mt_Get_Creature("player")))
+                if (m_Item_Type == ItemType::Edible)
                 {
+                    Context::smt_Get().m_System_Sound.mt_Play_Sound(SystemSound::m_Validate_String, {0.0f, 0.0f, 0.0f}, true);
+                    Context::smt_Get().m_Engine->m_Script.mt_Add_Command(new Command_Fight_Use_Object(l_Item, Context::smt_Get().m_Engine->m_Player));
                     Context::smt_Get().m_Engine->m_State = GameStateType::Game;
                 }
                 else
@@ -819,3 +821,38 @@ ISkill* GameState_Skill::mt_Get_Selected_Skill(void)
 
     return l_Skill;
 }
+
+
+
+
+
+
+void GameState_EndGame::mt_Create(void)
+{
+    //
+}
+
+void GameState_EndGame::mt_Destroy(void)
+{
+    //
+}
+
+void GameState_EndGame::mt_Handle_Event(sf::Event& event)
+{
+    if ((event.type == sf::Event::KeyReleased) && (event.key.code == sf::Keyboard::Space))
+    {
+        Context::smt_Get().m_Engine->m_State = GameStateType::Close;
+    }
+}
+
+void GameState_EndGame::mt_Update(float delta_time_s)
+{
+    //
+}
+
+void GameState_EndGame::mt_Draw(sf::RenderTarget& target)
+{
+    //
+}
+
+

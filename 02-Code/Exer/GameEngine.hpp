@@ -37,6 +37,7 @@ public:
 public:
     Creature* mt_Get_Creature(const std::string& creature_id);
     Creature* m_Player;
+    std::string m_Player_Skill_Id;
     std::vector<Resource<Dynamic>> m_Dyn;
 
 public:
@@ -81,6 +82,8 @@ public:
 
     GameState_Fight m_Fight_State;
     GameState_Skill m_Skill_State;
+
+    GameState_EndGame m_EndGame_State;
 
 public:
     void mt_Change_State(GameStateType new_state);

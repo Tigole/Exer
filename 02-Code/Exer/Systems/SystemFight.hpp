@@ -18,6 +18,7 @@ class SystemInventory;
 
 enum class SystemFightStates
 {
+    Start,
     Ordering,
     Turn,
     Done,
@@ -62,6 +63,9 @@ public:
     virtual void mt_Update(float elapsed_time_s) = 0;
     virtual void mt_Draw(sf::RenderTarget& target){}
 
+    void mt_Update_Movement(float elapsed_time_s);
+    sf::Vector2f m_Movement_Previous_Pos;
+
     bool m_Action_Decided;
     FighterAction m_Action;
     FightCreature* m_Tgt;
@@ -88,13 +92,15 @@ public:
 
     Item_Edible* m_Player_Item;
 
-    sf::Vector2f m_Movement_Previous_Pos;
-
 
     void mt_On_RunAway(void);
     void mt_On_Skill(void);
     void mt_On_Move(void);
     void mt_On_Object(void);
+    void mt_On_Pass(void);
+
+    Interpolator_Cos m_Interpolator;
+    float m_Accumulated_Time;
 };
 
 class FightAI : public FightLogic
@@ -108,7 +114,13 @@ class FightAI_Dumb : public FightAI
 public:
     void mt_Update(float elapsed_time_s) override;
 
-    ISkill* mt_Select_Skill(void);
+    virtual ISkill* mt_Select_Skill(void);
+};
+
+class FightAI_Mage : public FightAI_Dumb
+{
+public:
+    ISkill* mt_Select_Skill(void) override;
 };
 
 
@@ -121,6 +133,8 @@ public:
     FightLogic* m_Logic;
     int m_Party_Id;
     int m_Actions_Count;
+
+    FightCreature* m_Target_Move;
 };
 
 
@@ -144,6 +158,7 @@ public:
     void mt_Update(float elapsed_time) override;
     Item* m_Item;
     Creature* m_Tgt;
+    std::size_t m_Anim_Id;
 };
 
 struct SkillCreature
@@ -229,7 +244,7 @@ private:
     SystemAnimation m_Animation;
 
     FightLogic_Human m_Human_Logic;
-    FightAI_Dumb m_Boss_Logic;
+    FightAI_Mage m_Boss_Logic;
     FightAI_Dumb m_Dumb_Logic;
     FightAI_Dumb m_Villager_Logic;
 

@@ -68,6 +68,8 @@ public:
 private:
     bool m_Paid;
     bool m_Moving_Player;
+
+    std::string m_Map_Music_Id;
 };
 
 class Quest_Dark_Mage : public Quest

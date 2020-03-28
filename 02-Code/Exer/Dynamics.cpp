@@ -32,6 +32,144 @@ sf::FloatRect Dynamic::mt_Get_Hit_Box(void) const
 }
 
 
+
+
+Creature_Control::Creature_Control(Creature* tgt) : m_Tgt(tgt), m_Accumulated_Time(0.0f), m_Threshold(30.0f)
+{}
+
+void Creature_Control::mt_Update(float elapsed_time)
+{
+    m_Accumulated_Time += elapsed_time;
+
+    if (m_Accumulated_Time > m_Threshold)
+    {
+        m_Accumulated_Time = 0.0f;
+        m_Threshold = mt_On_Decide();
+    }
+}
+
+
+
+Creature_Control_AI_Square::Creature_Control_AI_Square(Creature* tgt)
+ :  Creature_Control(tgt)
+{}
+
+float Creature_Control_AI_Square::mt_On_Decide(void)
+{
+    int l_Roll;
+    float l_Ret;
+
+    l_Roll = rand() % 100;
+
+    if (m_Tgt->m_State == CreatureState::Idle)
+    {
+        if (m_Square.contains(m_Tgt->m_Pos) == false)
+        {
+            if (m_Tgt->m_Pos.x < m_Square.left)
+            {
+                m_Tgt->m_Desired_Vel.x = m_Tgt->m_Speed;
+            }
+            else if (m_Tgt->m_Pos.x > (m_Square.left + m_Square.width))
+            {
+                m_Tgt->m_Desired_Vel.x = -m_Tgt->m_Speed;
+            }
+
+            if (m_Tgt->m_Pos.y < m_Square.top)
+            {
+                m_Tgt->m_Desired_Vel.y = m_Tgt->m_Speed;
+            }
+            else if (m_Tgt->m_Pos.y > (m_Square.top + m_Square.height))
+            {
+                m_Tgt->m_Desired_Vel.y = -m_Tgt->m_Speed;
+            }
+        }
+        else if (l_Roll > 75)
+        {
+            m_Tgt->m_Desired_Vel.x = m_Tgt->m_Speed;
+        }
+        else if (l_Roll > 50)
+        {
+            m_Tgt->m_Desired_Vel.x = -m_Tgt->m_Speed;
+        }
+        else if (l_Roll > 25)
+        {
+            m_Tgt->m_Desired_Vel.y = m_Tgt->m_Speed;
+        }
+        else
+        {
+            m_Tgt->m_Desired_Vel.y = -m_Tgt->m_Speed;
+        }
+
+        l_Ret = (m_Threshold_Move_To_Idle_Min_ms != m_Threshold_Move_To_Idle_Max_ms)
+                    ? ((rand() % (m_Threshold_Move_To_Idle_Max_ms - m_Threshold_Move_To_Idle_Min_ms)) + m_Threshold_Move_To_Idle_Min_ms)
+                    : m_Threshold_Move_To_Idle_Min_ms;
+    }
+    else
+    {
+        m_Tgt->m_Desired_Vel = {0.0f, 0.0f};
+        l_Ret = (m_Threshold_Idle_To_Move_Min_ms != m_Threshold_Idle_To_Move_Max_ms)
+                    ? ((rand() % (m_Threshold_Idle_To_Move_Max_ms - m_Threshold_Idle_To_Move_Min_ms)) + m_Threshold_Idle_To_Move_Min_ms)
+                    : m_Threshold_Idle_To_Move_Min_ms;
+    }
+
+    l_Ret /= 1000.0f;
+
+    return l_Ret;
+}
+
+
+
+
+
+Creature_Control_AI_Rand::Creature_Control_AI_Rand(Creature* tgt) : Creature_Control(tgt)
+{}
+
+float Creature_Control_AI_Rand::mt_On_Decide(void)
+{
+    int l_Roll;
+    float l_Ret;
+
+    l_Roll = rand() % 100;
+
+    if (m_Tgt->m_State == CreatureState::Idle)
+    {
+        if (l_Roll > 75)
+        {
+            m_Tgt->m_Desired_Vel.x = m_Tgt->m_Speed;
+        }
+        else if (l_Roll > 50)
+        {
+            m_Tgt->m_Desired_Vel.x = -m_Tgt->m_Speed;
+        }
+        else if (l_Roll > 25)
+        {
+            m_Tgt->m_Desired_Vel.y = m_Tgt->m_Speed;
+        }
+        else
+        {
+            m_Tgt->m_Desired_Vel.y = -m_Tgt->m_Speed;
+        }
+
+        l_Ret = (m_Threshold_Move_To_Idle_Min_ms != m_Threshold_Move_To_Idle_Max_ms)
+                    ? ((rand() % (m_Threshold_Move_To_Idle_Max_ms - m_Threshold_Move_To_Idle_Min_ms)) + m_Threshold_Move_To_Idle_Min_ms)
+                    : m_Threshold_Move_To_Idle_Min_ms;
+    }
+    else
+    {
+        m_Tgt->m_Desired_Vel = {0.0f, 0.0f};
+        l_Ret = (m_Threshold_Idle_To_Move_Min_ms != m_Threshold_Idle_To_Move_Max_ms)
+                    ? ((rand() % (m_Threshold_Idle_To_Move_Max_ms - m_Threshold_Idle_To_Move_Min_ms)) + m_Threshold_Idle_To_Move_Min_ms)
+                    : m_Threshold_Idle_To_Move_Min_ms;
+    }
+
+    l_Ret /= 1000.0f;
+
+    return l_Ret;
+}
+
+
+
+
 Creature::Creature(const std::string& name, Resource<SpriteSheetAnimator> sprite)
  :  Dynamic(name),
     m_Gameplay_Data(),
@@ -101,13 +239,23 @@ void Creature::mt_Update(float elapsed_time)
     bool l_b_Moving((m_Vel.x != 0.0f) || (m_Vel.y != 0.0f));
     sf::Vector2f l_Dir(m_Vel/(sqrtf(m_Vel.x*m_Vel.x + m_Vel.y*m_Vel.y)));
 
+    if ((m_AI != nullptr) && (m_State != CreatureState::Speaking))
+    {
+        m_AI->mt_Update(elapsed_time);
+    }
+
     m_Sprite_Rect = m_Sprite->mt_Get_Rect(elapsed_time, l_Dir, l_b_Moving, m_Sprite_Data);
 
-    if (m_Gameplay_Data.m_Health <= 0)
+    if (m_State == CreatureState::Speaking)
+    {
+        //
+    }
+    else if (m_Gameplay_Data.m_Health <= 0)
     {
         m_State = CreatureState::Dead;
         m_Solid_Dyn = false;
         m_Solid_Map = false;
+        m_AI.reset(nullptr);
     }
     else if (l_b_Moving)
     {
@@ -129,7 +277,18 @@ void Creature::mt_Set_Sprite(const std::string& sprite_id)
 }
 
 void Creature::mt_OnInteract(Creature* player)
-{}
+{
+    if (m_Dialog.size() != 0)
+    {
+        SystemScript* l_Script = &Context::smt_Get().m_Engine->m_Script;
+
+        l_Script->mt_Add_Command(new Command_Creature_Set_State(this, CreatureState::Speaking));
+        l_Script->mt_Add_Command(new Command_Creature_LookAt(this, player));
+        l_Script->mt_Add_Command(new Command_ShowDialog(fn_Dialog(this, m_Dialog)));
+        l_Script->mt_Add_Command(new Command_Creature_Set_State(this, CreatureState::Idle));
+        m_Desired_Vel = {0.0f, 0.0f};
+    }
+}
 
 SpriteSheet_Direction Creature::mt_Get_Facing_Dir(void)
 {
@@ -173,6 +332,7 @@ void Creature::mt_LookDir(const sf::Vector2f& direction)
         }
     }
 }
+
 
 
 
@@ -332,6 +492,7 @@ void Dynamic_Light::mt_Update(float elapsed_time)
 
 void Dynamic_Light::mt_OnInteract(Creature* player)
 {
+    std::cout << "Dynamic_Light::mt_OnInteract\n";
     if (m_Start == false)
     {
         m_Start = true;

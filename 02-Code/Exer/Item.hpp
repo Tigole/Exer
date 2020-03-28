@@ -29,6 +29,7 @@ public:
     Resource<SpriteSheet> m_Sprite;
     sf::Vector2f m_Sprite_Rect;
     int m_Quantity;
+    std::string m_Anim_Id;
 };
 
 class Item_Quest : public Item

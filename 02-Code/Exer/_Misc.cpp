@@ -53,6 +53,16 @@ bool fn_Parse_XML_Document(TiXmlDocument& doc, const jaja::fp::File& f)
     return doc.Parse(l_String.c_str());
 }
 
+float fn_Distance(const sf::Vector2f& a, const sf::Vector2f& b)
+{
+    float x, y;
+
+    x = a.x - b.x;
+    y = a.y - b.y;
+
+    return sqrt((x*x + y*y));
+}
+
 std::ostream& operator<<(std::ostream& o, const sf::Color& c)
 {
     return o;
@@ -105,6 +115,18 @@ sf::String fn_Dialog(const Creature* speaker, const sf::String& text)
     return fn_Dialog(speaker, (speaker != nullptr) ? speaker->m_Dialog_Color : sf::Color::White, text);
 }
 
+std::vector<sf::String> fn_Dialog(const Creature* speaker, const std::vector<sf::String>& text)
+{
+    std::vector<sf::String> l_Ret;
+
+    for (std::size_t ii = 0; ii < text.size(); ii++)
+    {
+        l_Ret.push_back(fn_Dialog(speaker, text[ii]));
+    }
+
+    return l_Ret;
+}
+
 sf::String fn_City_Name(const sf::String& city_name, const sf::Color& previous_color)
 {
     return fn_Color_To_RichText(sf::Color(0xFC, 0x5D, 0x5D)) + "*" + city_name + "*" + fn_Color_To_RichText(previous_color);
@@ -119,3 +141,27 @@ sf::String fn_Quest_Object(const sf::String& obj, const sf::Color& previous_colo
 {
     return fn_Color_To_RichText(sf::Color(50, 205, 50)) + "*" + obj + "*" + fn_Color_To_RichText(previous_color);
 }
+
+
+
+
+
+
+
+float fn_Cubic_Pulse(float center, float width, float x)
+{
+    x = fabs(x - center);
+    if (x > width)
+    {
+        x = 0.0f;
+    }
+    else
+    {
+        x /= width;
+        x = 1.0 - x*x*(3.0f - 2.0f * x);
+    }
+
+    return x;
+}
+
+

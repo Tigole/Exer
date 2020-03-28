@@ -47,6 +47,36 @@ bool Quest_Main::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dynamic
 {
     bool l_b_Ret(false);
     SystemScript* l_Script = &Context::smt_Get().m_Engine->m_Script;
+    Creature* l_Player = Context::smt_Get().m_Engine->m_Player;
+    GameEngine* l_Engine = Context::smt_Get().m_Engine;
+    auto l_Dyn = std::find_if(l_Engine->m_Dyn.begin(), l_Engine->m_Dyn.end(), [](const Resource<Dynamic> d){return d->m_Name == "FinLight";});
+    Dynamic_Light* l_Light = nullptr;
+
+    if (l_Dyn != l_Engine->m_Dyn.end())
+    {
+        l_Light = dynamic_cast<Dynamic_Light*>(l_Dyn->m_Resource);
+    }
+
+    if (tgt->m_Name == "FinDeJeu")
+    {
+        if (    1/*(Context::smt_Get().m_Engine->m_System_Quest.mt_Has_Quest("Sombres manigances"))
+            &&  (Context::smt_Get().m_Engine->m_System_Quest.mt_Is_Quest_Ended("Sombres manigances"))*/)
+        {
+            l_Player->m_Desired_Vel = {0.0f, 0.0f};
+
+            l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Player, "En route pour " + fn_City_Name("Axâme", sf::Color::White) + " !")}));
+            //l_Script->mt_Add_Command(new Command_Lights(l_Engine->m_Sky_Color, sf::Color::Black, 1.0f));
+            l_Script->mt_Add_Command(new Command_MoveOffset(l_Player, {{3.0f, 0.0f}}, 1.0f, true));
+            l_Script->mt_Add_Command(new Command_End_Game());
+            m_Completed = true;
+        }
+        else
+        {
+            //
+        }
+
+        l_b_Ret = true;
+    }
 
     return l_b_Ret;
 }
@@ -97,7 +127,7 @@ bool Quest_Troll::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dynami
             {
                 l_Troll->mt_LookAt(*l_Player);
                 l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Troll, "Hé!")}));
-                l_Script->mt_Add_Command(new Command_MoveOffset(l_Player, {sf::Vector2i(-1, 0), sf::Vector2i(0, 1)}, l_Player->m_Speed * 0.5f));
+                l_Script->mt_Add_Command(new Command_MoveOffset(l_Player, {sf::Vector2f(-1, 0), sf::Vector2f(0, 1)}, l_Player->m_Speed * 0.5f, false));
                 l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Player, l_Troll));
                 l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Troll, l_Player));
                 m_Moving_Player = true;
@@ -114,6 +144,7 @@ bool Quest_Troll::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dynami
                 l_Choices.push_back(DialogChoice("#yellow J'ai de l'or si tu veux.", &Quest_Troll::mt_On_Pay, this));
             }
             l_Script->mt_Add_Command(new Command_Choice(l_Choices));
+            m_Map_Music_Id = Context::smt_Get().m_Engine->mt_Get_Music_Id();
             l_b_Ret = true;
         }
     }
@@ -137,6 +168,7 @@ void Quest_Troll::mt_On_Leave(void)
     SystemScript* l_Script = &Context::smt_Get().m_Engine->m_Script;
 
     l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(Context::smt_Get().m_Engine->mt_Get_Creature("Troll"), "J'aime mieux ça!")}));
+    l_Script->mt_Add_Command(new Command_Music(m_Map_Music_Id, 1.0f));
     m_Moving_Player = false;
 }
 
@@ -171,7 +203,9 @@ void Quest_Troll::mt_On_Victory(void)
     SystemScript* l_Script = &Context::smt_Get().m_Engine->m_Script;
     Creature* l_Player = Context::smt_Get().m_Engine->mt_Get_Creature("player");
 
+    l_Script->mt_Add_Command(new Command_Music("", 1.0f));
     l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Player, "Repose en paix gardien du pont.")}));
+    l_Script->mt_Add_Command(new Command_Music(m_Map_Music_Id, 1.0f));
 }
 
 void Quest_Troll::mt_On_Pay(void)
@@ -181,8 +215,9 @@ void Quest_Troll::mt_On_Pay(void)
 
     l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Troll, "De l'or!"),
                                                     fn_Dialog(l_Troll, "Tu peux passer.")}));
-    l_Script->mt_Add_Command(new Command_MoveOffset(l_Troll, {sf::Vector2i(0, 1)}, l_Troll->m_Speed));
+    l_Script->mt_Add_Command(new Command_MoveOffset(l_Troll, {sf::Vector2f(0, 1)}, l_Troll->m_Speed, false));
     l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Troll, sf::Vector2f(0.0f, -1.0f), true));
+    l_Script->mt_Add_Command(new Command_Music(m_Map_Music_Id, 1.0f));
     Context::smt_Get().m_Engine->m_Inventory.mt_Change_Item_Count("Gold", -1, ItemType::Quest);
 
     m_Completed = true;
@@ -213,7 +248,7 @@ bool Quest_Dark_Mage::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dy
     {
         l_Player->m_Desired_Vel = {0.0f, 0.0f};
         l_Script->mt_Add_Command(new Command_ShowDialog({"???\nA l'aide !"}));
-        l_Script->mt_Add_Command(new Command_MoveTo(l_Player, sf::Vector2f(102.0f, 55.0f), l_Player->m_Speed * 1.7f));
+        l_Script->mt_Add_Command(new Command_MoveTo(l_Player, sf::Vector2f(102.0f, 55.0f), l_Player->m_Speed * 1.7f, false));
         l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Player, l_Villageois2));
         l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Player, "Mais que se passe-t-il ?"),
                                                         fn_Dialog(l_Villageois2, "On était au sanctuaire en train de faire nos prières et"),
@@ -244,9 +279,9 @@ bool Quest_Dark_Mage::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dy
         m_Villager_Seen = true;
         if (l_Player->m_Pos.x < l_Villageois2->m_Pos.x)
         {
-            l_Script->mt_Add_Command(new Command_MoveTo(l_Player, sf::Vector2f(l_Villageois2->m_Pos.x, l_Villageois2->m_Pos.y + 2.0f), l_Player->m_Speed));
+            l_Script->mt_Add_Command(new Command_MoveTo(l_Player, sf::Vector2f(l_Villageois2->m_Pos.x, l_Villageois2->m_Pos.y + 2.0f), l_Player->m_Speed, false));
         }
-        l_Script->mt_Add_Command(new Command_MoveTo(l_Player, sf::Vector2f(98.0f, 100.0f), l_Player->m_Speed));
+        l_Script->mt_Add_Command(new Command_MoveTo(l_Player, sf::Vector2f(98.0f, 100.0f), l_Player->m_Speed, false));
         l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Player, sf::Vector2f(0.0f, -1.0f), true));
         l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Villageois2, "Aide-nous guérisseur !"),
                                                         fn_Dialog(l_Villageois2, l_Villageois_Blesse->m_Name + " souffre terriblement !"),
@@ -287,7 +322,7 @@ bool Quest_Dark_Mage::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dy
                                                         fn_Dialog(l_Villageois2, "Non."),
                                                         fn_Dialog(l_Villageois2, "Merci à vous.")}));
 
-        l_Script->mt_Add_Command(new Command_MoveOffset(l_Player, {sf::Vector2i(0, 2)}, l_Player->m_Speed / 2.0f));
+        l_Script->mt_Add_Command(new Command_MoveOffset(l_Player, {sf::Vector2f(0, 2)}, l_Player->m_Speed / 2.0f, false));
         if ((l_Troll != nullptr) && (l_Troll->m_Gameplay_Data.m_Health > 0))
         {
             l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Player, "Il semble que les habitants de cette forêt\nsoient plus fier qu'il n'y parait."),
@@ -353,24 +388,25 @@ bool Quest_Dark_Mage::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dy
         l_Fight[1].push_back(CommandFightCreature());
         l_Fight[1][0].m_Tgt = l_Player;
         l_Fight[1][0].m_Logic_Id = SystemFight::m_Human_Logic_String;
-        l_Fight[1][0].m_Actions_Count = 1;
+        l_Fight[1][0].m_Actions_Count = 2;
 
         l_Fight[2].push_back(CommandFightCreature());
         l_Fight[2][0].m_Tgt = l_Mage;
         l_Fight[2][0].m_Logic_Id = SystemFight::m_Boss_Logic_String;
-        l_Fight[2][0].m_Actions_Count = 1;
+        l_Fight[2][0].m_Actions_Count = 2;
 
         l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Mage, sf::Vector2f(-1.0f, 0.0f), true));
         l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Player, "Hein ?")}));
         l_Script->mt_Add_Command(new Command_Music("", 2.0f));
-        l_Script->mt_Add_Command(new Command_MoveTo(l_Player, sf::Vector2f(67.0f, 20.0f), l_Player->m_Speed));
+        l_Script->mt_Add_Command(new Command_MoveTo(l_Player, sf::Vector2f(67.0f, 20.0f), l_Player->m_Speed, false));
+        l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Player, sf::Vector2f(-1.0f, 0.0f), true));
 
         if (m_Villager_Help == true)
         {
             l_Fight[1].push_back(CommandFightCreature());
             l_Fight[1].back().m_Tgt = l_Villageois2;
             l_Fight[1].back().m_Logic_Id = SystemFight::m_Villager_Logic_String;
-            l_Fight[1].back().m_Actions_Count = 1;
+            l_Fight[1].back().m_Actions_Count = 2;
 
             l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Player, l_Villageois2));
             l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Villageois2, l_Player));
@@ -383,7 +419,7 @@ bool Quest_Dark_Mage::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dy
             l_Fight[1].push_back(CommandFightCreature());
             l_Fight[1].back().m_Tgt = l_Villageois2;
             l_Fight[1].back().m_Logic_Id = SystemFight::m_Villager_Logic_String;
-            l_Fight[1].back().m_Actions_Count = 1;
+            l_Fight[1].back().m_Actions_Count = 2;
 
             l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Player, l_Troll));
             l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Troll, l_Player));
@@ -399,17 +435,16 @@ bool Quest_Dark_Mage::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dy
 
         l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Player, "Peut-être que cet homme est au courant\nde ce qui est arrivé aux villageois."),
                                                         fn_Dialog(l_Player, "J'ai quelques questions à lui poser.")}));
-        l_Script->mt_Add_Command(new Command_MoveTo(l_Player, sf::Vector2f(55.0f, 20.0f), l_Player->m_Speed));
-        l_Script->mt_Add_Command(new Command_MoveTo(l_Player, sf::Vector2f(55.0f, 19.0f), l_Player->m_Speed));
+        l_Script->mt_Add_Command(new Command_MoveTo(l_Player, sf::Vector2f(55.0f, 20.0f), l_Player->m_Speed, false));
         l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Player, l_Mage));
         if (m_Troll_Help == true)
         {
-            l_Script->mt_Add_Command(new Command_MoveTo(l_Troll, sf::Vector2f(54.0f, 20.0f), l_Troll->m_Speed));
+            l_Script->mt_Add_Command(new Command_MoveTo(l_Troll, sf::Vector2f(54.0f, 20.0f), l_Troll->m_Speed, false));
             l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Troll, l_Mage));
         }
         if (m_Villager_Help == true)
         {
-            l_Script->mt_Add_Command(new Command_MoveTo(l_Villageois2, sf::Vector2f(55.0f, 20.0f), l_Villageois2->m_Speed));
+            l_Script->mt_Add_Command(new Command_MoveTo(l_Villageois2, sf::Vector2f(55.0f, 20.0f), l_Villageois2->m_Speed, false));
             l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Villageois2, l_Mage));
         }
 
@@ -452,6 +487,7 @@ bool Quest_Dark_Mage::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dy
                                                             fn_Dialog(l_Player, "C'est vous qui avez attaqué ces pauvres villageois.")}));
         }
 
+        l_Script->mt_Add_Command(new Command_Wait(1.5f));
         l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Mage, "Vous n'auriez jamais dû venir ici !"),
                                                         fn_Dialog(l_Player, "Permettez-moi d'en douter.")}));
         l_Script->mt_Add_Command(new Command_Music("", 0.5f));
@@ -476,9 +512,13 @@ void Quest_Dark_Mage::mt_On_Victory(void)
     SystemScript* l_Script = &Context::smt_Get().m_Engine->m_Script;
     Creature* l_Player = Context::smt_Get().m_Engine->mt_Get_Creature("player");
 
+    l_Script->mt_Add_Command(new Command_Music("", 1.0f));
     l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Player, "Les habitants de " + fn_City_Name("La Passe")+ " ne seront plus dérangés\npar cet homme."),
                                                     fn_Dialog(l_Player, "J'en ai fini avec cet endroit."),
                                                     fn_Dialog(l_Player, "Je peux maintenant avancer en direction d'" + fn_City_Name("Axâme")+ ", vers l'Est.")}));
+    l_Script->mt_Add_Command(new Command_Music(Context::smt_Get().m_Engine->m_Map->m_Name, 1.0f));
+
+    m_Completed = true;
 }
 
 void Quest_Dark_Mage::mt_Get_Description(std::vector<std::vector<sf::String>>& description)
@@ -577,8 +617,8 @@ void Quest_Tutoriel::mt_On_Victory(void)
                                                     fn_Dialog(l_Player, "La sale bête !")}));
 
 
-    Context::smt_Get().m_Engine->mt_End_Demo();
-    return;
+    /*Context::smt_Get().m_Engine->mt_End_Demo();
+    return;*/
     if (    (l_Player->m_Gameplay_Data.m_Health != l_Player->m_Gameplay_Data.m_Health_Max)
         ||  (l_Player->m_Gameplay_Data.m_Data_Aventure.m_Psy != l_Player->m_Gameplay_Data.m_Data_Aventure.m_Psy_Max))
     {
@@ -590,6 +630,9 @@ void Quest_Tutoriel::mt_On_Victory(void)
         l_Script->mt_Add_Command(new Command_ShowDialog({"~La touche " + fn_Command_Key("I") + " permet d'accéder à l'inventaire.~",
                                                         "~Une fois dans l'inventaire, la navigation se fait avec\nles " + fn_Command_Key("touches directionnelles") + ".~",
                                                         "~Pour sélectionner un menu ou un item, appuyez sur " + fn_Command_Key("Espace") + ".~"}));
+
+        l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Player, "La prochaine fois, je devrais utiliser\nma compétence spéciale pour en finir plus vite.")}));
+        l_Script->mt_Add_Command(new Command_AddSkill(l_Player, Context::smt_Get().m_Engine->m_Player_Skill_Id));
     }
 }
 

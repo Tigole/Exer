@@ -9,6 +9,8 @@
 #include <sstream>
 #include "FilePacker/FilePacker.hpp"
 
+#include <iostream>
+
 template<typename ResourceType>
 struct Resource
 {
@@ -93,14 +95,20 @@ public:
     {
         auto l_it = m_Resources.find(resource_id);
         if (l_it == m_Resources.end())
-            throw std::runtime_error("[" + m_Manager_Name + "] Unknown resource: " + resource_id);
+        {
+            for (auto& r : m_Resources)
+            {
+                std::cout << r.first << '\n';
+            }
+            throw std::runtime_error("[" + m_Manager_Name + "] Unknown resource: \"" + resource_id + "\"");
+        }
 
         ResourceData<ResourceType>& l_Resource_Data = *l_it->second;
 
         if (l_Resource_Data.m_Counter == 0)
         {
             if (mt_Load_Resource(l_Resource_Data.m_Reference_File, l_Resource_Data.m_Resource) == false)
-                throw std::runtime_error("[" + m_Manager_Name + "] Fail loading: " + resource_id);
+                throw std::runtime_error("[" + m_Manager_Name + "] Fail loading: \"" + resource_id + "\"");
         }
         l_Resource_Data.m_Counter++;
 
@@ -113,7 +121,13 @@ public:
         {
             auto l_it = m_Resources.find(*resource.m_Resource_Id);
             if (l_it == m_Resources.end())
-                throw std::runtime_error("[" + m_Manager_Name + "] Unknown resource: " + *resource.m_Resource_Id);
+            {
+                for (auto& r : m_Resources)
+                {
+                    std::cout << r.first << '\n';
+                }
+                throw std::runtime_error("[" + m_Manager_Name + "] Unknown resource: \"" + *resource.m_Resource_Id + "\"");
+            }
 
             ResourceData<ResourceType>& l_Resource_Data = *l_it->second;
 
