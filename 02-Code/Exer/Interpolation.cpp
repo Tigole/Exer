@@ -75,3 +75,22 @@ float Interpolator_Cos::mt_Progression(float x)
 {
     return 0.5f * (1 - cos(2.0 * 3.1416 * x));
 }
+
+
+Interpolator_Parabola::Interpolator_Parabola(float power) : m_Power(power) {}
+
+float Interpolator_Parabola::mt_Progression(float x)
+{
+    return pow(4.0f * x * (1.0f - x), m_Power);
+}
+
+
+
+Interpolator_Gain::Interpolator_Gain(float k) : m_Gain(k) {}
+
+float Interpolator_Gain::mt_Progression(float x)
+{
+    const float a = 0.5f * pow(2.0f * ((x < 0.5f) ? x : 1.0f - x), m_Gain);
+    return (x < 0.5f) ? a : 1.0f - a;
+}
+

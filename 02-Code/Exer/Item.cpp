@@ -55,3 +55,11 @@ bool Item_Edible::mt_OnUse(Creature* object)
     return true;
 }
 
+
+Item_Equipment::Item_Equipment()
+{}
+
+bool Item_Equipment::mt_OnUse(Creature* object)
+{
+    return false;
+}

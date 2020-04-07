@@ -2,6 +2,7 @@
 #define _STATE_HPP 1
 
 #include <iostream>
+#include <ostream>
 
 template<typename T>
 struct State
@@ -11,7 +12,7 @@ struct State
         m_Previous = m_Showing_Previous = m_Current;
         m_Current = new_state;
 
-        std::cout << "[State]: " << m_Showing_Previous << " -> " << m_Current << "\n";
+        //std::cout << "[State]: " << m_Showing_Previous << " -> " << m_Current << "\n";
 
         return *this;
     }
@@ -35,6 +36,13 @@ struct State
 private:
     T m_Showing_Previous;
 };
+
+template<typename T>
+std::ostream& operator<<(std::ostream& o, const State<T>& s)
+{
+    o << s.m_Previous << " -> " << s.m_Current;
+    return o;
+}
 
 
 #endif // _STATE_HPP

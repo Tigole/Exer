@@ -2,6 +2,8 @@
 #include "Context.hpp"
 #include "GameEngine.hpp"
 
+#include "RichText.hpp"
+
 GameStateDisplayer::GameStateDisplayer()
 {
     m_Gradient_Period_s = 3.0f;
@@ -61,18 +63,40 @@ void GameState_Quest::mt_Handle_Event(sf::Event& event)
             }
             Context::smt_Get().m_System_Sound.mt_Play_Sound(SystemSound::m_Validate_String, {0.0f, 0.0f, 0.0f}, true);
         }
+        else if (event.key.code == sf::Keyboard::Up)
+        {
+            m_Selected_Quest -= 3;
+            if (m_Selected_Quest < 0)
+            {
+                m_Selected_Quest = 0;
+            }
+            Context::smt_Get().m_System_Sound.mt_Play_Sound(SystemSound::m_Validate_String, {0.0f, 0.0f, 0.0f}, true);
+        }
+        else if (event.key.code == sf::Keyboard::Down)
+        {
+            m_Selected_Quest += 3;
+            if (m_Selected_Quest >= Context::smt_Get().m_Engine->m_System_Quest.m_Quests.size())
+            {
+                m_Selected_Quest = Context::smt_Get().m_Engine->m_System_Quest.m_Quests.size();
+            }
+            Context::smt_Get().m_System_Sound.mt_Play_Sound(SystemSound::m_Validate_String, {0.0f, 0.0f, 0.0f}, true);
+        }
     }
 }
 
 void GameState_Quest::mt_Update(float delta_time_s)
 {
+    if ((m_Selected_Quest < 0) && (Context::smt_Get().m_Engine->m_System_Quest.m_Quests.size() != 0))
+    {
+        m_Selected_Quest = 0;
+    }
     GameStateDisplayer::mt_Update(delta_time_s);
 }
 
 void GameState_Quest::mt_Draw(sf::RenderTarget& target)
 {
     sf::Vector2f l_Pos;
-    sf::Text l_Text;
+    sfe::RichText l_Text;
     sf::CircleShape l_Cursor;
     int l_Cnt(0);
     sf::RectangleShape l_Rect;
@@ -92,7 +116,6 @@ void GameState_Quest::mt_Draw(sf::RenderTarget& target)
 
         l_Text.setCharacterSize(40);
         l_Text.setString("Quêtes");
-        l_Text.setFillColor(sf::Color::White);
         l_Text.setOrigin(l_Text.getGlobalBounds().width / 2.0f, 0.0f);
         l_Text.setPosition(bounds.left + bounds.width / 2.0f, bounds.top + m_Margin);
         target.draw(l_Text);
@@ -113,7 +136,6 @@ void GameState_Quest::mt_Draw(sf::RenderTarget& target)
 
         l_Pos.x = bounds.left + m_Margin;
         l_Pos.y = bounds.top + m_Margin;
-        l_Text.setFillColor(sf::Color::White);
         l_Text.setCharacterSize(25);
 
         l_Rect.setSize({l_Offset.x, l_Offset.y});
@@ -123,7 +145,7 @@ void GameState_Quest::mt_Draw(sf::RenderTarget& target)
             Quest* l_Quest = l_System_Quest->m_Quests[ii].m_Resource;
             l_Rect.setPosition(l_Pos);
 
-            l_Text.setString(l_Quest->m_Quest_Id);
+            l_Text.setString(l_Quest->m_Quest_Name);
             l_Text.setOrigin(l_Text.getGlobalBounds().width / 2.0f, 0.0f);
             l_Text.setPosition(l_Rect.getGlobalBounds().left + l_Rect.getGlobalBounds().width / 2.0f , l_Pos.y);
 
@@ -168,8 +190,6 @@ void GameState_Quest::mt_Draw(sf::RenderTarget& target)
             std::vector<std::vector<sf::String>> l_Description;
 
             l_Quest->mt_Get_Description(l_Description);
-
-            l_Text.setColor(sf::Color::White);
 
             l_Pos.x += 3.0f;
 
@@ -247,8 +267,15 @@ void GameState_Item::mt_Handle_Event(sf::Event& event)
         }
         else if (l_Type == EventType::Validate)
         {
-            m_Select_Item_Type = false;
-            Context::smt_Get().m_System_Sound.mt_Play_Sound(SystemSound::m_Validate_String, {0.0f, 0.0f, 0.0f}, true);
+            if (Context::smt_Get().m_Engine->m_Inventory.mt_Get_Item_Count(m_Item_Type) > 0)
+            {
+                m_Select_Item_Type = false;
+                Context::smt_Get().m_System_Sound.mt_Play_Sound(SystemSound::m_Validate_String, {0.0f, 0.0f, 0.0f}, true);
+            }
+            else
+            {
+                Context::smt_Get().m_System_Sound.mt_Play_Sound(SystemSound::m_Buzz_String, {0.0f, 0.0f, 0.0f}, true);
+            }
         }
         if ((l_Type == EventType::Released_Left) || (l_Type == EventType::Released_Up))
         {
@@ -457,6 +484,10 @@ void GameState_Item::mt_Draw(sf::RenderTarget& target)
                 {
                     l_Sprite.setOutlineColor(sf::Color::White);
                     l_Sprite.setOutlineThickness(2.0f);
+                    if (m_Select_Item_Type == false)
+                    {
+                        l_Sprite.setOutlineColor(sf::Color(255, 255, 255, 255 * (0.5 * sinf(m_Accumulated_Time_s * 2.0f * 3.14f * 0.5f) + 0.5f)));
+                    }
                 }
                 l_Global_Bounds = l_Sprite.getGlobalBounds();
 
@@ -765,7 +796,7 @@ void GameState_Skill::mt_Draw(sf::RenderTarget& target)
             target.draw(l_Text);
             l_Pos.y += l_Text.getGlobalBounds().height + m_Margin;
 
-            l_Text.setString("Distance: " + std::to_string(l_Skill->m_Distance_Max));
+            l_Text.setString("Distance: " + fn_To_String(l_Skill->m_Distance_Max));
             l_Text.setPosition(l_Pos);
             target.draw(l_Text);
             l_Pos.y += l_Text.getGlobalBounds().height + m_Margin;
@@ -839,7 +870,15 @@ void GameState_EndGame::mt_Destroy(void)
 
 void GameState_EndGame::mt_Handle_Event(sf::Event& event)
 {
-    if ((event.type == sf::Event::KeyReleased) && (event.key.code == sf::Keyboard::Space))
+    if (Context::smt_Get().m_Dialog->mt_Has_Event_Priority() == true)
+    {
+        Context::smt_Get().m_Dialog->mt_Handle_Event(event);
+    }
+    else if (Context::smt_Get().m_Engine->m_Script.m_User_Ctrl == true)
+    {
+        Context::smt_Get().m_Engine->m_State = GameStateType::Close;
+    }
+    else if ((event.type == sf::Event::KeyReleased) && (event.key.code == sf::Keyboard::Space))
     {
         Context::smt_Get().m_Engine->m_State = GameStateType::Close;
     }
@@ -847,12 +886,19 @@ void GameState_EndGame::mt_Handle_Event(sf::Event& event)
 
 void GameState_EndGame::mt_Update(float delta_time_s)
 {
-    //
+    Context::smt_Get().m_Engine->m_Script.mt_Process_Command(delta_time_s);
+    Context::smt_Get().m_Dialog->mt_Update(delta_time_s);
+
+    if (Context::smt_Get().m_Engine->m_Script.m_User_Ctrl == true)
+    {
+        Context::smt_Get().m_Engine->m_State = GameStateType::Close;
+    }
 }
 
 void GameState_EndGame::mt_Draw(sf::RenderTarget& target)
 {
-    //
+    target.setView(target.getDefaultView());
+    Context::smt_Get().m_Dialog->mt_Draw(target);
 }
 
 

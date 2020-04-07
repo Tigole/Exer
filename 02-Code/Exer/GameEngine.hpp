@@ -15,6 +15,7 @@
 #include "Systems/SystemQuest.hpp"
 #include "Systems/SystemFight.hpp"
 #include "Systems/SystemInventory.hpp"
+#include "Systems/SystemCamera.hpp"
 
 #include "GameStates.hpp"
 #include "States/GameState_Fight.hpp"
@@ -49,6 +50,7 @@ private:
 
 public:
     SystemScript m_Script;
+    SystemAnimation m_Animation;
 
 public:
     void mt_Start_Fight(const std::map<int, std::vector<CommandFightCreature>>& fighters, std::function<void(void)> pfn_On_Victory, const std::string& music_id);
@@ -90,10 +92,7 @@ public:
     State<GameStateType> m_State;
 
 public:
-    void mt_Set_Camera_Center(const sf::Vector2f& center);
-    sf::View mt_Get_Camera_View(void) const;
-private:
-    sf::View m_Camera_View;
+    SystemCamera m_Camera;
 
 public:
     sf::Color m_Sky_Color;

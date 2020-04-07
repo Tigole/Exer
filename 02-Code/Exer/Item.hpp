@@ -57,5 +57,11 @@ public:
     int m_Restore_Min;
 };
 
+class Item_Equipment : public Item
+{
+public:
+    Item_Equipment();
+    bool mt_OnUse(Creature* object) override;
+};
 
 #endif // _ITEM_HPP

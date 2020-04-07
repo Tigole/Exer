@@ -11,6 +11,9 @@ std::ostream& operator<<(std::ostream& o, SystemFightStates s)
     case SystemFightStates::Ordering: o << "Ordering"; break;
     case SystemFightStates::Turn: o << "Turn"; break;
     case SystemFightStates::Done: o << "Done"; break;
+    case SystemFightStates::Start: o << "Start"; break;
+    case SystemFightStates::COUNT: o << "COUNT"; break;
+    default : o << static_cast<int>(s); break;
     }
     return o;
 }
@@ -26,7 +29,10 @@ std::ostream& operator<<(std::ostream& o, SystemFightFighterStates s)
     case SystemFightFighterStates::Choose_Skill: o << "Choose_Skill"; break;
     case SystemFightFighterStates::Choose_Target: o << "Choose_Target"; break;
     case SystemFightFighterStates::Move: o << "Move"; break;
+    case SystemFightFighterStates::Find_Path: o << "Find_Path"; break;
     case SystemFightFighterStates::Run_Away: o << "Run_Away"; break;
+    case SystemFightFighterStates::COUNT: o << "COUNT"; break;
+    default : o << static_cast<int>(s); break;
     }
     return o;
 }
@@ -43,6 +49,7 @@ void FightLogic::mt_Update_Movement(float elapsed_time_s)
     {
         m_Tgt->m_Tgt->m_Desired_Vel = {0.0f, 0.0f};
         m_State = SystemFightFighterStates::Done;
+        std::cout << "\t No more movement\n";
     }
 
     m_Movement_Previous_Pos = l_New_Pos;
@@ -67,6 +74,7 @@ void FightLogic_Human::mt_Handle_Event(sf::Event& event)
         {
             m_State.m_Previous = m_State.m_Current;
             m_State.m_Current = SystemFightFighterStates::Choose_Action;
+            m_Actions_Remaining += 2;
         }
         else
         {
@@ -102,6 +110,7 @@ void FightLogic_Human::mt_Handle_Event(sf::Event& event)
         {
             m_State.m_Previous = m_State.m_Current;
             m_State.m_Current = SystemFightFighterStates::Choose_Action;
+            m_Actions_Remaining += 2;
         }
     }
     else if (m_State.m_Current == SystemFightFighterStates::Choose_Object)
@@ -129,6 +138,7 @@ void FightLogic_Human::mt_Handle_Event(sf::Event& event)
             Context::smt_Get().m_Engine->m_Inventory_State.mt_Lock_Type(ItemType::COUNT);
             m_State.m_Previous = m_State.m_Current;
             m_State.m_Current = SystemFightFighterStates::Choose_Action;
+            m_Actions_Remaining++;
         }
         else
         {
@@ -165,6 +175,18 @@ void FightLogic_Human::mt_Handle_Event(sf::Event& event)
         {
             m_State = SystemFightFighterStates::Done;
         }
+        else if (l_Type == EventType::Cancel)
+        {
+            if (m_Move_Distance_Left == m_Tgt->m_Tgt->m_Gameplay_Data.m_Movement)
+            {
+                m_Actions_Remaining++;
+                m_State = SystemFightFighterStates::Choose_Action;
+            }
+            else
+            {
+                Context::smt_Get().m_System_Sound.mt_Play_Sound(SystemSound::m_Buzz_String, sf::Vector3f(0.0f, 0.0f, 0.0f), true);
+            }
+        }
     }
     else
     {
@@ -183,7 +205,6 @@ void FightLogic_Human::mt_Update(float elapsed_time_s)
     case SystemFightFighterStates::Choose_Action:
         if (m_State.mt_On_Entry())
         {
-            std::cout << "FightLogic_Human::mt_Update\n";
             std::vector<DialogChoice> l_Choices;
 
             if (m_Actions_Remaining > 1)
@@ -246,7 +267,7 @@ void FightLogic_Human::mt_Draw(sf::RenderTarget& target)
 
         l_Pos = Context::smt_Get().m_Engine->m_Map->m_Tileset->mt_Cell_To_Pixel(l_Pos);
 
-        Context::smt_Get().m_Engine->mt_Set_Camera_Center(l_Pos);
+        //Context::smt_Get().m_Engine->mt_Set_Camera_Center(l_Pos);
 
         sf::RectangleShape l_Rect;
 
@@ -351,6 +372,7 @@ void FightLogic_Human::mt_On_Pass(void)
 
 void FightAI_Dumb::mt_Update(float elapsed_time_s)
 {
+    //std::cout << m_Tgt->m_Tgt->m_Name << " : " << m_State << '\n';
     if (m_State == SystemFightFighterStates::Choose_Action)
     {
         std::vector<FightCreature*> l_Targetable;
@@ -392,36 +414,98 @@ void FightAI_Dumb::mt_Update(float elapsed_time_s)
                     }
                 }
             }
-            m_State = SystemFightFighterStates::Move;
-            m_Movement_Previous_Pos = m_Tgt->m_Tgt->m_Pos;
-            m_Tgt->m_Tgt->m_Desired_Vel = (m_Tgt->m_Target_Move->m_Tgt->m_Pos - m_Tgt->m_Tgt->m_Pos);
-            m_Tgt->m_Tgt->m_Desired_Vel /= (float)sqrt(std::pow(m_Tgt->m_Tgt->m_Desired_Vel.x, 2.0f) + std::pow(m_Tgt->m_Tgt->m_Desired_Vel.y, 2.0f));
-            m_Tgt->m_Tgt->m_Desired_Vel *= m_Tgt->m_Tgt->m_Speed;
-            m_Actions_Remaining -= 1;
+            m_State = SystemFightFighterStates::Find_Path;
+            fn_Clear_Stack(m_Move_Path);
+            Context::smt_Get().m_PathFinder.mt_Find(*(Context::smt_Get().m_Engine->m_Map), m_Tgt->m_Tgt, m_Tgt->m_Target_Move->m_Tgt);
+        }
+    }
+    else if (m_State == SystemFightFighterStates::Find_Path)
+    {
+        if (Context::smt_Get().m_PathFinder.mt_Path_Found(m_Move_Path))
+        {
+            if (m_Move_Path.empty())
+            {
+                std::cout << "Path empty...\n";
+                m_State = SystemFightFighterStates::Done;
+            }
+            else
+            {
+                std::cout << "Path found\n";
+                m_State = SystemFightFighterStates::Move;
+                m_Movement_Previous_Pos = m_Tgt->m_Tgt->m_Pos;
+                m_Actions_Remaining -= 1;
+                m_Move_Path.pop();
+                m_Move_Distance_Left = m_Tgt->m_Tgt->m_Gameplay_Data.m_Movement;
+                m_Tgt->m_Tgt->m_Desired_Vel = (m_Move_Path.top() - m_Tgt->m_Tgt->m_Pos);
+                m_Tgt->m_Tgt->m_Desired_Vel /= (float)sqrt(std::pow(m_Tgt->m_Tgt->m_Desired_Vel.x, 2.0f) + std::pow(m_Tgt->m_Tgt->m_Desired_Vel.y, 2.0f));
+                m_Tgt->m_Tgt->m_Desired_Vel *= m_Tgt->m_Tgt->m_Speed;
+            }
         }
     }
     else if (m_State == SystemFightFighterStates::Move)
     {
-        std::cout << m_Tgt->m_Tgt->m_Vel << '\n';
-        if (    (fabs(m_Tgt->m_Tgt->m_Desired_Vel.x - m_Tgt->m_Tgt->m_Vel.x) > 0.01f)
-            &&  (fabs(m_Tgt->m_Tgt->m_Desired_Vel.y - m_Tgt->m_Tgt->m_Vel.y) > 0.01f))
+        sf::Vector2f l_Error(m_Move_Path.top() - m_Tgt->m_Tgt->m_Pos);
+
+        //std::cout << "Error: " << l_Error.x << ' ' << l_Error.y << '\n';
+
+        if (fabs(l_Error.x) > 0.05f || fabs(l_Error.y) > 0.05f)
         {
-            std::cout << "FightAI_Dumb::mt_Update: Collision detected\n";
+            m_Tgt->m_Tgt->m_Desired_Vel = l_Error / (float)sqrt(l_Error.x * l_Error.x + l_Error.y * l_Error.y);
+            m_Tgt->m_Tgt->m_Desired_Vel *= m_Tgt->m_Tgt->m_Speed;
         }
 
-        m_Tgt->m_Tgt->m_Desired_Vel = (m_Tgt->m_Target_Move->m_Tgt->m_Pos - m_Tgt->m_Tgt->m_Pos);
-        m_Tgt->m_Tgt->m_Desired_Vel /= (float)sqrt(std::pow(m_Tgt->m_Tgt->m_Desired_Vel.x, 2.0f) + std::pow(m_Tgt->m_Tgt->m_Desired_Vel.y, 2.0f));
-        m_Tgt->m_Tgt->m_Desired_Vel *= m_Tgt->m_Tgt->m_Speed;
-
-        if (fn_Distance(m_Tgt->m_Tgt->m_Pos, m_Tgt->m_Target_Move->m_Tgt->m_Pos) <= 1.1f)
+        if ((fabs(l_Error.x) > 0.05f) && (m_Tgt->m_Tgt->m_Vel.x == 0.0f))
         {
-            m_Tgt->m_Tgt->m_Desired_Vel = {0.0f, 0.0f};
+            std::cout << "X collision detected\n";
+            if (fn_Distance(m_Tgt->m_Tgt->m_Pos, m_Tgt->m_Target_Move->m_Tgt->m_Pos) <= 1.0f)
+            {
+                std::cout << "\t\tOK\n";
+                m_State = SystemFightFighterStates::Done;
+            }
             m_State = SystemFightFighterStates::Done;
+            m_Actions_Remaining++;
         }
-        else
+        else if ((fabs(l_Error.y) > 0.05f) && (m_Tgt->m_Tgt->m_Vel.y == 0.0f))
         {
-            mt_Update_Movement(elapsed_time_s);
+            std::cout << "Y collision detected\n";
+            if (fn_Distance(m_Tgt->m_Tgt->m_Pos, m_Tgt->m_Target_Move->m_Tgt->m_Pos) <= 1.0f)
+            {
+                std::cout << "\t\tOK\n";
+                m_State = SystemFightFighterStates::Done;
+            }
+            m_State = SystemFightFighterStates::Done;
+            m_Actions_Remaining++;
         }
+
+        if ((m_Tgt->m_Tgt->m_Vel.x == 0.0f) && (m_Tgt->m_Tgt->m_Vel.y == 0.0f))
+        {
+            l_Error = m_Tgt->m_Target_Move->m_Tgt->m_Pos - m_Tgt->m_Tgt->m_Pos;
+            if ((fabs(l_Error.x) < 1.0f) && (fabs(l_Error.y) < 1.0f))
+            {
+                std::cout << "Tgt reached\n";
+            }
+        }
+
+        //std::cout << m_Move_Path.size() << ' ' << fn_Distance(m_Move_Path.top(), m_Tgt->m_Tgt->m_Pos) << '\n';
+        if (fn_Distance(m_Move_Path.top(), m_Tgt->m_Tgt->m_Pos) <= 0.05f)
+        {
+            std::cout << "Key point reached\n";
+            m_Move_Path.pop();
+            if (m_Move_Path.size() <= 1)
+            {
+                std::cout << "Target point reached\n";
+                m_Tgt->m_Tgt->m_Desired_Vel = {0.0f, 0.0f};
+                m_State = SystemFightFighterStates::Done;
+            }
+            else
+            {
+                m_Tgt->m_Tgt->m_Desired_Vel = (m_Move_Path.top() - m_Tgt->m_Tgt->m_Pos);
+                m_Tgt->m_Tgt->m_Desired_Vel /= (float)sqrt(std::pow(m_Tgt->m_Tgt->m_Desired_Vel.x, 2.0f) + std::pow(m_Tgt->m_Tgt->m_Desired_Vel.y, 2.0f));
+                m_Tgt->m_Tgt->m_Desired_Vel *= m_Tgt->m_Tgt->m_Speed;
+            }
+        }
+
+        mt_Update_Movement(elapsed_time_s);
     }
     else if (m_State == SystemFightFighterStates::Make_Action)
     {
@@ -432,6 +516,7 @@ void FightAI_Dumb::mt_Update(float elapsed_time_s)
     }
     else if (m_State == SystemFightFighterStates::Done)
     {
+        m_Tgt->m_Tgt->m_Desired_Vel = {0.0f, 0.0f};
         if (m_Actions_Remaining > 0)
         {
             m_State = SystemFightFighterStates::Choose_Action;
@@ -593,10 +678,10 @@ void Command_Play_Animation::mt_Update(float elapsed_time)
 }
 
 
-const std::string SystemFight::m_Human_Logic_String = "Human";
-const std::string SystemFight::m_Dumb_Logic_String = "Dumb";
-const std::string SystemFight::m_Boss_Logic_String = "Boss";
-const std::string SystemFight::m_Villager_Logic_String = "Villager";
+const std::string SystemFight::ms_Human_Logic_String = "Human";
+const std::string SystemFight::ms_Dumb_Logic_String = "Dumb";
+const std::string SystemFight::ms_Boss_Logic_String = "Boss";
+const std::string SystemFight::ms_Villager_Logic_String = "Villager";
 
 void SystemFight::mt_Handle_Event(sf::Event& event)
 {
@@ -618,6 +703,11 @@ void SystemFight::mt_Update(float delta_time_s)
     m_Script.mt_Process_Command(delta_time_s);
     m_Animation.mt_Update(delta_time_s);
 
+    if (m_Script.m_User_Ctrl == false)
+    {
+        return;
+    }
+
     switch (m_State.m_Current)
     {
     case SystemFightStates::Start:
@@ -633,7 +723,7 @@ void SystemFight::mt_Update(float delta_time_s)
         mt_Update_Turn(delta_time_s);
         break;
     case SystemFightStates::Done:
-        if (1)
+        if (Context::smt_Get().m_Engine->m_Player->m_Gameplay_Data.m_Health > 0)
         {
             m_Player_Win = true;
         }
@@ -737,6 +827,8 @@ void SystemFight::mt_Update_Ordering(float delta_time_s)
     m_Fighters[m_Ordered_Fighters[m_Current_Fighter]].m_Logic->m_Actions_Remaining = m_Fighters[m_Ordered_Fighters[m_Current_Fighter]].m_Actions_Count;
     m_Fighters[m_Ordered_Fighters[m_Current_Fighter]].m_Logic->m_Tgt = &m_Fighters[m_Ordered_Fighters[m_Current_Fighter]];
 
+    m_Script.mt_Add_Command(new Command_Camera_Creature(m_Fighters[m_Ordered_Fighters[m_Current_Fighter]].m_Tgt, 0.2f, new Interpolator_Gain(2.0f)));
+
     m_State = SystemFightStates::Turn;
 }
 
@@ -780,6 +872,7 @@ void SystemFight::mt_Update_Turn(float delta_time_s)
                     m_Fighters[m_Ordered_Fighters[m_Current_Fighter]].m_Logic->m_State = SystemFightFighterStates::Choose_Action;
                     m_Fighters[m_Ordered_Fighters[m_Current_Fighter]].m_Logic->m_Actions_Remaining = m_Fighters[m_Ordered_Fighters[m_Current_Fighter]].m_Actions_Count;
                     m_Fighters[m_Ordered_Fighters[m_Current_Fighter]].m_Logic->m_Tgt = &m_Fighters[m_Ordered_Fighters[m_Current_Fighter]];
+                    m_Script.mt_Add_Command(new Command_Camera_Creature(m_Fighters[m_Ordered_Fighters[m_Current_Fighter]].m_Tgt, 0.2f, new Interpolator_Gain(2.0f)));
                 }
             }
         }
@@ -806,15 +899,15 @@ void SystemFight::mt_Start_Fight(const std::map<int, std::vector<CommandFightCre
             l_c.m_Party_Id = l_Party_Id;
             l_c.m_Tgt = f.second[ii].m_Tgt;
             l_c.m_Actions_Count = f.second[ii].m_Actions_Count;
-            if (f.second[ii].m_Logic_Id == m_Human_Logic_String)
+            if (f.second[ii].m_Logic_Id == ms_Human_Logic_String)
             {
                 l_c.m_Logic = &m_Human_Logic;
             }
-            else if (f.second[ii].m_Logic_Id == m_Boss_Logic_String)
+            else if (f.second[ii].m_Logic_Id == ms_Boss_Logic_String)
             {
                 l_c.m_Logic = &m_Boss_Logic;
             }
-            else if (f.second[ii].m_Logic_Id == m_Villager_Logic_String)
+            else if (f.second[ii].m_Logic_Id == ms_Villager_Logic_String)
             {
                 l_c.m_Logic = &m_Villager_Logic;
             }
@@ -830,8 +923,7 @@ void SystemFight::mt_Start_Fight(const std::map<int, std::vector<CommandFightCre
     m_pfn_On_Victory = pfn_On_Victory;
 
     m_State = SystemFightStates::Start;
-
-    m_Current_Fighter = 0;
+    m_State.m_Previous = SystemFightStates::COUNT;
 
     m_Dialog.m_Dialog_Font = Context::smt_Get().m_Fonts.mt_Get_Resource("BOOKOS");
     Context::smt_Get().m_System_Animation = &m_Animation;
@@ -913,3 +1005,6 @@ bool SystemFight::mt_Should_End(void) const
 
     return l_b_Ret;
 }
+
+
+

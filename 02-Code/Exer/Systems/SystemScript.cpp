@@ -6,7 +6,6 @@
 SystemScript::SystemScript()
  :  m_User_Ctrl(true),
     m_Light_Ctrl(false),
-    m_Camera_Ctrl(true),
     m_Check_Dyn_Collision(true)
 {}
 
@@ -16,6 +15,7 @@ void SystemScript::mt_Add_Command(Command* c)
     m_Commands.push_back(std::unique_ptr<Command>(c));
     m_User_Ctrl = false;
     m_Check_Dyn_Collision = false;
+    std::cout << "SCRIPT: Command count: " << m_Commands.size() << '\n';
 }
 
 void SystemScript::mt_Process_Command(float elapsed_time)
@@ -28,7 +28,6 @@ void SystemScript::mt_Process_Command(float elapsed_time)
         {
             if (m_Commands.front()->m_Started == false)
             {
-                m_Camera_Ctrl = false;
                 m_Commands.front()->mt_Start();
                 m_Commands.front()->m_Started = true;
                 m_Check_Dyn_Collision = m_Commands.front()->m_Check_Dyn_Collision;
@@ -39,11 +38,11 @@ void SystemScript::mt_Process_Command(float elapsed_time)
         {
             m_Commands.pop_front();
             m_Light_Ctrl = false;
+            std::cout << "SCRIPT: Remaining command count: " << m_Commands.size() << "\n";
         }
     }
     else
     {
-        m_Camera_Ctrl = true;
         m_Check_Dyn_Collision = true;
     }
 }

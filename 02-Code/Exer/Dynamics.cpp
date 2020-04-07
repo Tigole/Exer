@@ -218,7 +218,7 @@ void Creature::mt_Draw(sf::RenderTarget& target, sf::RenderStates state)
         l_Sprite.setTextureRect(m_Sprite_Rect);
         if (m_Gameplay_Data.m_Health <= 0)
         {
-            l_Sprite.setColor(sf::Color(255, 255, 255, 64));
+            l_Sprite.setColor(sf::Color(255, 255, 255, 0));
         }
         target.draw(l_Sprite, state);
 
@@ -237,7 +237,7 @@ void Creature::mt_Draw(sf::RenderTarget& target, sf::RenderStates state)
 void Creature::mt_Update(float elapsed_time)
 {
     bool l_b_Moving((m_Vel.x != 0.0f) || (m_Vel.y != 0.0f));
-    sf::Vector2f l_Dir(m_Vel/(sqrtf(m_Vel.x*m_Vel.x + m_Vel.y*m_Vel.y)));
+    sf::Vector2f l_Dir(m_Desired_Vel/(sqrtf(m_Desired_Vel.x*m_Desired_Vel.x + m_Desired_Vel.y*m_Desired_Vel.y)));
 
     if ((m_AI != nullptr) && (m_State != CreatureState::Speaking))
     {
@@ -436,7 +436,6 @@ void Dynamic_Chest::mt_OnInteract(Creature* player)
 
             l_Dialog.push_back(sf::String(l_Item->m_Name + " (x " + std::to_string(m_Items[ii].m_Quantity) + ")"));
         }
-        m_Sprite_Data.m_Facing_Dir = SpriteSheet_Direction::North;
 
         l_Script.mt_Add_Command(new Command_ChestOpen(this));
         l_Script.mt_Add_Command(new Command_ShowDialog(l_Dialog));
@@ -492,8 +491,7 @@ void Dynamic_Light::mt_Update(float elapsed_time)
 
 void Dynamic_Light::mt_OnInteract(Creature* player)
 {
-    std::cout << "Dynamic_Light::mt_OnInteract\n";
-    if (m_Start == false)
+    if ((m_Start == false))
     {
         m_Start = true;
         m_Accumulated_Time_s = 0.0f;
@@ -501,4 +499,46 @@ void Dynamic_Light::mt_OnInteract(Creature* player)
     }
 }
 
+
+Dynamic_Music::Dynamic_Music()
+ :  Dynamic(""),
+    m_Started(false)
+{
+    m_Solid_Dyn = false;
+    m_Solid_Map = false;
+}
+
+void Dynamic_Music::mt_Draw(sf::RenderTarget& target, sf::RenderStates state)
+{}
+
+void Dynamic_Music::mt_Update(float elapsed_time)
+{
+    if (m_Started == true)
+    {
+        sf::Music* l_Music = Context::smt_Get().m_Engine->mt_Get_Music();
+        Interpolator_Linear l_Interpolator;
+
+        m_Acc_Time += elapsed_time;
+
+        if (l_Music != nullptr)
+        {
+            l_Music->setVolume(fn_Interpolate(&l_Interpolator, m_Acc_Time, m_Transition_Time, 100, 0));
+        }
+
+        if (m_Acc_Time >= m_Transition_Time)
+        {
+            m_Started = false;
+            Context::smt_Get().m_Engine->mt_Play_Music(m_Music_Id);
+        }
+    }
+}
+
+void Dynamic_Music::mt_OnInteract(Creature* player)
+{
+    if ((m_Started == false) && (Context::smt_Get().m_Engine->mt_Get_Music_Id() != m_Music_Id))
+    {
+        m_Started = true;
+        m_Acc_Time = 0.0f;
+    }
+}
 

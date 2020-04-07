@@ -35,6 +35,7 @@ enum class SystemFightFighterStates
     Choose_Target,
     Make_Action,
     Move,
+    Find_Path,
 
     Run_Away,
 
@@ -107,6 +108,9 @@ class FightAI : public FightLogic
 {
 public:
     void mt_Handle_Event(sf::Event& event) override {}
+
+protected:
+    std::stack<sf::Vector2f> m_Move_Path;
 };
 
 class FightAI_Dumb : public FightAI
@@ -230,10 +234,10 @@ public:
     bool m_Player_Win;
     std::function<void(void)> m_pfn_On_Victory;
 
-    static const std::string m_Human_Logic_String;
-    static const std::string m_Dumb_Logic_String;
-    static const std::string m_Boss_Logic_String;
-    static const std::string m_Villager_Logic_String;
+    static const std::string ms_Human_Logic_String;
+    static const std::string ms_Dumb_Logic_String;
+    static const std::string ms_Boss_Logic_String;
+    static const std::string ms_Villager_Logic_String;
 
 private:
 
@@ -247,7 +251,6 @@ private:
     FightAI_Mage m_Boss_Logic;
     FightAI_Dumb m_Dumb_Logic;
     FightAI_Dumb m_Villager_Logic;
-
 
 private:
     SystemScript m_Script;

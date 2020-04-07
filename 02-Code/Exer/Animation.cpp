@@ -88,6 +88,7 @@ void Animation::mt_Start(void)
     m_Sprite.setTextureRect(m_Data->m_SpriteSheet->mt_Get_Rect(0, 0));
 
     m_Current_Phase = 0;
+    m_Current_Sound = 0;
 
     m_Transform.setPosition(m_Position);
     m_Transform.setScale(m_Dimension.x / m_Sprite.getTextureRect().width, m_Dimension.y / m_Sprite.getTextureRect().height);
@@ -100,6 +101,16 @@ void Animation::mt_Start(void)
 void Animation::mt_Update(float elapsed_time)
 {
     m_Accumulated_Time_s += elapsed_time;
+
+    if (m_Current_Sound < m_Data->m_Sounds.size())
+    {
+        if (m_Data->m_Sounds[m_Current_Sound].first == m_Current_Phase)
+        {
+            Context::smt_Get().m_System_Sound.mt_Play_Sound(m_Data->m_Sounds[m_Current_Sound].second, sf::Vector3f(0.0f, 0.0f, 0.0f), true);
+            m_Current_Sound++;
+        }
+    }
+
     if (m_Accumulated_Time_s >= 0.1f)
     {
         m_Accumulated_Time_s = 0.0f;

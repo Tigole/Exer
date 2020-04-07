@@ -58,7 +58,8 @@ void fn_Main(void)
     Context::smt_Get().m_Items.mt_Load("Assets/Items.cfg");
     fn_Load_Config(Context::smt_Get().m_Skills, "Assets/Skills.cfg");
     fn_Load_Config(Context::smt_Get().m_Animations, "Assets/Animations.cfg");
-
+    Context::smt_Get().m_PathFinder.m_Dyns = &l_Game.m_Dyn;
+    Context::smt_Get().m_System_Animation = &l_Game.m_Animation;
 
     sf::Listener::setGlobalVolume(20.0f);
 
@@ -81,19 +82,14 @@ void GameEngine::mt_Create(void)
     sf::Vector2i l_Tile_Count(32, 22);
     Context::smt_Get().m_Engine = this;
 
-    /*l_Tile_Count.x = 20;
-    l_Tile_Count.y = 18;*/
-
     m_FPS = 60;
     m_Wnd.create(sf::VideoMode(l_Tile_Count.x * 32, l_Tile_Count.y * 32), "Exer", sf::Style::Titlebar | sf::Style::Close);
-    m_Camera_View = m_Wnd.getView();
-
     m_Wnd.setMouseCursorVisible(false);
+
+    m_Camera.mt_Initialize(m_Wnd);
 
     m_State.m_Current = GameStateType::Game;
     m_State.m_Previous = GameStateType::Game;
-
-    //m_Selected_Quest = -1;
 
     m_Quest_State.mt_Create();
     m_Game_State.mt_Create();
@@ -118,11 +114,11 @@ void GameEngine::mt_Handle_Event(sf::Event& event)
 
         l_New_View.width = event.size.width;
         l_New_View.height = event.size.height;
-        l_New_View.left = m_Camera_View.getCenter().x - m_Camera_View.getSize().x / 2;
-        l_New_View.top = m_Camera_View.getCenter().y - m_Camera_View.getSize().y / 2;
+//        l_New_View.left = m_Camera_View.getCenter().x - m_Camera_View.getSize().x / 2;
+//        l_New_View.top = m_Camera_View.getCenter().y - m_Camera_View.getSize().y / 2;
 
-        m_Camera_View.reset(l_New_View);
-        m_Wnd.setView(m_Camera_View);
+//        m_Camera_View.reset(l_New_View);
+//        m_Wnd.setView(m_Camera_View);
     }
     else
     {
@@ -150,7 +146,19 @@ void GameEngine::mt_Handle_Event(sf::Event& event)
             m_EndGame_State.mt_Handle_Event(event);
             break;
         case GameStateType::Close:
-            m_b_Close_Window = true;
+            break;
+        case GameStateType::Game_Over:
+            Context::smt_Get().m_Dialog->mt_Handle_Event(event);
+            if (Context::smt_Get().m_Dialog->mt_Has_Event_Priority() == false)
+            {
+                if (event.type == sf::Event::KeyReleased)
+                {
+                    if ((event.key.code == sf::Keyboard::Space) || (event.key.code == sf::Keyboard::Escape))
+                    {
+                        m_State = GameStateType::Close;
+                    }
+                }
+            }
             break;
         case GameStateType::COUNT:
         default:
@@ -196,17 +204,6 @@ void GameEngine::mt_Update(float delta_time_s)
         break;
     case GameStateType::Fight:
         m_Fight_State.mt_Update(delta_time_s);
-        if (m_Fight_State.m_Fight.mt_Is_Ended())
-        {
-            if (m_Fight_State.m_Fight.m_Player_Win)
-            {
-                m_State = GameStateType::Game;
-            }
-            else
-            {
-                m_State = GameStateType::Game_Over;
-            }
-        }
         break;
     case GameStateType::Display_Skills:
         m_Skill_State.mt_Update(delta_time_s);
@@ -218,11 +215,20 @@ void GameEngine::mt_Update(float delta_time_s)
         m_EndGame_State.mt_Update(delta_time_s);
         break;
     case GameStateType::Close:
+        m_b_Close_Window = true;
         break;
+    case GameStateType::Game_Over:
+    {
+        m_Script.mt_Process_Command(delta_time_s);
+        Context::smt_Get().m_Dialog->mt_Update(delta_time_s);
+        break;
+    }
     case GameStateType::COUNT:
     default:
         m_State = GameStateType::Game;
     }
+
+    m_Camera.mt_Update(delta_time_s);
 }
 
 void GameEngine::mt_Draw(sf::RenderTarget& target)
@@ -252,6 +258,11 @@ void GameEngine::mt_Draw(sf::RenderTarget& target)
         break;
     case GameStateType::Close:
         break;
+    case GameStateType::Game_Over:
+    {
+        m_Game_State.mt_Draw(target);
+        break;
+    }
     case GameStateType::COUNT:
     default:
         m_State = GameStateType::Game;
@@ -261,9 +272,52 @@ void GameEngine::mt_Draw(sf::RenderTarget& target)
     {
         switch(m_State.m_Current)
         {
-            //
+        case GameStateType::Game:
+            if (m_State.m_Previous == GameStateType::Choose_Class)
+            {
+                m_Script.mt_Add_Command(new Command_Music("", 3.0f));
+                m_Script.mt_Add_Command(new Command_Camera(m_Map->m_Tileset->mt_Cell_To_Pixel(m_Player->m_Pos), 0.2f, new Interpolator_Linear, false));
+                m_Script.mt_Add_Command(new Command_ShowDialog({fn_Dialog(m_Player, "Ça fait plusieurs jours que je suis dans cette grotte..."),
+                                                               fn_Dialog(m_Player, "Mais il me semble que depuis quelques mètres l'odeur a changé."),
+                                                               fn_Dialog(m_Player, "La sortie ?"),
+                                                               fn_Dialog(m_Player, "Oui !"),
+                                                               fn_Dialog(m_Player, "Enfin !")}));
+                m_Script.mt_Add_Command(new Command_Camera(m_Map->m_Tileset->mt_Cell_To_Pixel(m_Player->m_Pos + sf::Vector2f(20, 15)), 2.0f, new Interpolator_Cos, false));
+                //m_Script.mt_Add_Command(new Command_Camera(m_Map->m_Tileset->mt_Cell_To_Pixel(m_Player->m_Pos), 1.0f, new Interpolator_Cos));
+                m_Script.mt_Add_Command(new Command_Music("Map", 1.0f));
+                m_Script.mt_Add_Command(new Command_Lights(sf::Color::Black, sf::Color::White, 2.0f));
+                m_Script.mt_Add_Command(new Command_ShowDialog({fn_Dialog(m_Player, "Ah !"),
+                                                               fn_Dialog(m_Player, "L'air frait !")}));
+                m_Script.mt_Add_Command(new Command_Sound("Wind", sf::Vector3f(0.0f, 0.0f, 0.0f), true));
+                m_Script.mt_Add_Command(new Command_ShowDialog({fn_Dialog(m_Player, "Aller !"),
+                                                               fn_Dialog(m_Player, "Descendons  le plus vite possible de cette maudite passe !"),
+                                                               fn_Dialog(m_Player, "Retrouvons la civilisation !")}));
+
+
+                m_System_Quest.mt_Add_Quest("Main_Quest");
+                m_System_Quest.mt_Add_Quest("Tutoriel");
+            }
+            break;
+        case GameStateType::EndGame:
+            m_Script.mt_Add_Command(new Command_Music("Fin", 0.5f));
+            m_Script.mt_Add_Command(new Command_Wait(1.2f));
+            m_Script.mt_Add_Command(new Command_ShowDialog({"Merci milles fois d'avoir joué\net bravo d'être arrivé jusqu'au bout !",
+                                                           "J'espère que tu as passé\nun bon moment sur ce jeu !",
+                                                           "N'hésite pas à rejouer pour changer de classe\net essayer d'autres options de dialogue !",
+                                                           "Encore une fois merci !\nEt à bientôt pour " + fn_Command_Key("Lithomancia") + " !",
+                                                           "JaJa"}));
+            m_Script.mt_Add_Command(new Command_Music("", 2.0f));
+            m_Script.mt_Add_Command(new Command_End_Game());
+            break;
+        case GameStateType::Game_Over:
+            m_Script.mt_Add_Command(new Command_Lights(m_Sky_Color, sf::Color::Black, 2.0f));
+            m_Script.mt_Add_Command(new Command_ShowDialog({"Game Over",
+                                                            "Il ne faut sutout pas rester sur une défaite !",
+                                                            "Peut-être que vous pouvez faire mieux ?"}));
+            break;
         }
 
+        std::cout << "GAME STATE: " << m_State.m_Previous << " -> " << m_State.m_Current << '\n';
         m_State.m_Previous = m_State.m_Current;
     }
 }
@@ -329,16 +383,16 @@ void GameEngine::mt_Change_Map(const std::string& map_id, const sf::Vector2f& pl
         q->mt_Populate_Dynamics(m_Dyn, m_Map->m_Name);
 
     m_Player = dynamic_cast<Creature*>(m_Dyn[0].m_Resource);
+    m_Camera.mt_Set_Tgt(m_Player);
 }
 
 void GameEngine::mt_New_Game(const std::string& file)
 {
     sf::Vector2f l_Player_Pos(18.0f, 19.0f);
-    m_Dyn.push_back(Context::smt_Get().m_Dynamics.mt_Get_Resource("Player"));
+    bool l_Dbg(true);
+    Creature* l_Troll = nullptr;
 
-    m_System_Quest.mt_Add_Quest("Main_Quest");
-    m_System_Quest.mt_Add_Quest("Test");
-    m_System_Quest.mt_Add_Quest("Tutoriel");
+    m_Dyn.push_back(Context::smt_Get().m_Dynamics.mt_Get_Resource("Player"));
 
     /// Troll
     //l_Player_Pos = {31.0f, 61.0f};
@@ -350,48 +404,67 @@ void GameEngine::mt_New_Game(const std::string& file)
     //l_Player_Pos = {97.0f, 101.0f};
 
     /// Mage
-    //l_Player_Pos = {76.0f, 20.0f};
+    l_Player_Pos = {76.0f, 20.0f};
 
     /// Fin
     //l_Player_Pos = {144.0f, 50.0f};
 
     mt_Change_Map("Road", l_Player_Pos);
 
-    m_Inventory.mt_Change_Item_Count("LifePotion", 20, ItemType::Edible);
-    m_Inventory.mt_Change_Item_Count("PsyPotion", 20, ItemType::Edible);
+    if (l_Dbg)
+    {
+        m_Inventory.mt_Change_Item_Count("LifePotion", 20, ItemType::Edible);
+        m_Inventory.mt_Change_Item_Count("PsyPotion", 20, ItemType::Edible);
 
-    m_Sky_Color = sf::Color::Black;
-    m_Script.mt_Add_Command(new Command_Lights(sf::Color::Black, sf::Color::Black, 0.02f));
-    m_Script.mt_Add_Command(new Command_Wait(1.0f));
-    m_Script.mt_Add_Command(new Command_ShowDialog({"_Contrôles du jeu :_ \nValide tes actions avec #F4661B *Espace* #white \nAnnule avec #F4661B *Echap* #white \nDéplace toi avec les #F4661B *flèches directionnelles* #white"}));
-    m_Script.mt_Add_Command(new Command_Music("Presentation", 2.0f));
-    m_Script.mt_Add_Command(new Command_Wait(2.0f));
-    m_Script.mt_Add_Command(new Command_ShowDialog({"Bienvenu dans " + fn_Command_Key("Exer", sf::Color::White) + ".",
-                                                   "Après plusieurs mois de développement,\nje suis fier de présenter ce 1er RPG.",
-                                                   "Mais assez passé de temps en présentations,\nà toi de jouer !",
-                                                   "Bonne aventure !",
-                                                   "JaJa"}));
-    m_Script.mt_Add_Command(new Command_Wait(1.0f));
-    m_Script.mt_Add_Command(new Command_Set_Intro());
-    m_Script.mt_Add_Command(new Command_Music("Introduction", 3.0f));
-    m_Script.mt_Add_Command(new Command_Camera(m_Map->m_Tileset->mt_Cell_To_Pixel(m_Player->m_Pos), 0.2f, new Interpolator_Linear));
-    m_Script.mt_Add_Command(new Command_ShowDialog({"\"Dialogue de début du jeu.\""}));
-    m_Script.mt_Add_Command(new Command_Camera(m_Map->m_Tileset->mt_Cell_To_Pixel(m_Player->m_Pos + sf::Vector2f(20, 15)), 2.0f, new Interpolator_Cos));
-    //m_Script.mt_Add_Command(new Command_Camera(m_Map->m_Tileset->mt_Cell_To_Pixel(m_Player->m_Pos), 1.0f, new Interpolator_Cos));
-    m_Script.mt_Add_Command(new Command_Lights(sf::Color::Black, sf::Color::White, 2.0f));
+        m_Sky_Color = sf::Color::White;
+
+        /// Sombres_Manigances - Troll
+        Creature* l_Villageois = mt_Get_Creature("Arthur");
+        l_Troll = mt_Get_Creature("Troll");
+
+        Quest_Dark_Mage* l_Quest = dynamic_cast<Quest_Dark_Mage*>(m_System_Quest.mt_Add_Quest("Sombres_Manigances"));
+
+        l_Quest->m_Mage_Defeated_Before_Herbe = false;
+
+        l_Troll->m_Pos = sf::Vector2f(69.0f, 21.0f);
+        //l_Quest->m_Troll_Help = true;
+        l_Villageois->m_Pos = sf::Vector2f(69.0f, 19.0f);
+        //l_Quest->m_Villager_Help = true;
+    }
+    else
+    {
+        l_Troll = mt_Get_Creature("Troll");
+        l_Troll->mt_LookDir(sf::Vector2f(-1.0f, 0.0f));
+        l_Troll->m_Pos.y -= 0.5f;
+        m_Sky_Color = sf::Color::Black;
+        m_Script.mt_Add_Command(new Command_Lights(sf::Color::Black, sf::Color::Black, 0.02f));
+        m_Script.mt_Add_Command(new Command_Wait(1.0f));
+        m_Script.mt_Add_Command(new Command_ShowDialog({"_Contrôles du jeu :_ \nValide tes actions avec #F4661B *Espace* #white \nAnnule avec #F4661B *Echap* #white \nDéplace toi avec les #F4661B *flèches directionnelles* #white"}));
+        m_Script.mt_Add_Command(new Command_Music("Presentation", 2.0f));
+        m_Script.mt_Add_Command(new Command_Wait(2.0f));
+        m_Script.mt_Add_Command(new Command_ShowDialog({"Bienvenu dans " + fn_Command_Key("Exer", sf::Color::White) + ".",
+                                                       "C'est après 10 mois de développement\net près de 30 000 lignes de code,\nque je suis fier de présenter ce 1er RPG.",
+                                                       "Mais assez passé de temps en présentations,\nà toi de jouer !",
+                                                       "Bonne aventure !",
+                                                       "JaJa"}));
+        m_Script.mt_Add_Command(new Command_Wait(1.0f));
+        m_Script.mt_Add_Command(new Command_Set_Intro());
+        /*m_Script.mt_Add_Command(new Command_Music("Introduction", 3.0f));
+        m_Script.mt_Add_Command(new Command_Camera(m_Map->m_Tileset->mt_Cell_To_Pixel(m_Player->m_Pos), 0.2f, new Interpolator_Linear, false));
+        m_Script.mt_Add_Command(new Command_ShowDialog({"Ça fait plusieurs jours que je suis dans cette grotte...",
+                                                       "Mais il me semble que depuis quelques mètres l'odeur a changé.",
+                                                       "La sortie ?",
+                                                       "Oui !",
+                                                       "Enfin !"}));
+        m_Script.mt_Add_Command(new Command_Camera(m_Map->m_Tileset->mt_Cell_To_Pixel(m_Player->m_Pos + sf::Vector2f(20, 15)), 2.0f, new Interpolator_Cos, false));
+        //m_Script.mt_Add_Command(new Command_Camera(m_Map->m_Tileset->mt_Cell_To_Pixel(m_Player->m_Pos), 1.0f, new Interpolator_Cos));
+        m_Script.mt_Add_Command(new Command_Music("Map", 1.0f));
+        m_Script.mt_Add_Command(new Command_Lights(sf::Color::Black, sf::Color::White, 2.0f));
+        m_Script.mt_Add_Command(new Command_ShowDialog())*/
+    }
+
+
 }
-
-
-void GameEngine::mt_Set_Camera_Center(const sf::Vector2f& center)
-{
-    m_Camera_View.setCenter(center);
-}
-
-sf::View GameEngine::mt_Get_Camera_View(void) const
-{
-    return m_Camera_View;
-}
-
 
 void GameEngine::mt_Play_Music(const std::string& music_id)
 {

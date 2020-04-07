@@ -35,14 +35,14 @@ void Command_MoveOffset::mt_Start(void)
     m_Obj_Init_Speed = m_Tgt->m_Speed;
     m_Tgt->m_Speed = m_Obj_Speed;
     m_Tgt->m_Desired_Vel = mt_Compute_Vel(sf::Vector2f(m_Offsets[m_Current_Offset].x, m_Offsets[m_Current_Offset].y), m_Tgt->m_Speed);
-    Context::smt_Get().m_Engine->m_Script.m_Camera_Ctrl = true;
+    m_Tgt->m_Solid_Dyn = false;
 }
 
 void Command_MoveOffset::mt_Update(float elapsed_time)
 {
-    std::cout << "Command_MoveOffset::mt_Update : " << m_Tgt->m_Pos.x << " "
+    /*std::cout << "Command_MoveOffset::mt_Update : " << m_Tgt->m_Pos.x << " "
               << m_Old_Pos.x + m_Offsets[m_Current_Offset].x << " "
-              << (m_Old_Pos.x + m_Offsets[m_Current_Offset].x) - m_Tgt->m_Pos.x << '\n';
+              << (m_Old_Pos.x + m_Offsets[m_Current_Offset].x) - m_Tgt->m_Pos.x << '\n';*/
     if (m_Tgt->m_Desired_Vel.x != 0.0f)
     {
         if (m_Offsets[m_Current_Offset].x >= 0.0f)
@@ -111,6 +111,7 @@ void Command_MoveOffset::mt_Update(float elapsed_time)
     if (m_Current_Offset >= m_Offsets.size())
     {
         m_Tgt->m_Speed = m_Obj_Init_Speed;
+        m_Tgt->m_Solid_Dyn = true;
         m_Completed = true;
     }
     else
@@ -177,7 +178,7 @@ void Command_MoveTo::mt_Start(void)
 
     for (std::size_t ii = 0; ii < l_Offsets.size(); ii++)
     {
-        std::cout << "Command_MoveTo::mt_Start ii=" << ii << " : " << l_Offsets[ii].x << " " << l_Offsets[ii].y << '\n';
+        //std::cout << "Command_MoveTo::mt_Start ii=" << ii << " : " << l_Offsets[ii].x << " " << l_Offsets[ii].y << '\n';
     }
 
     m_Offsets.reset(new Command_MoveOffset(m_Obj, l_Offsets, m_Obj_Speed, false));
@@ -318,15 +319,16 @@ void Command_Lights::mt_Update(float elapsed_time)
 
 
 
-Command_Camera::Command_Camera(const sf::Vector2f& tgt_pos_pix, float time_s, IInterpolator* interpolator)
+Command_Camera::Command_Camera(const sf::Vector2f& tgt_pos_pix, float time_s, IInterpolator* interpolator, bool hold_position)
  :  m_Tgt_Pos(tgt_pos_pix),
     m_Time_s(time_s),
-    m_Interpolator(interpolator)
+    m_Interpolator(interpolator),
+    m_Hold_Position(hold_position)
 {}
 
 void Command_Camera::mt_Start(void)
 {
-    m_Src_Pos = Context::smt_Get().m_Engine->mt_Get_Camera_View().getCenter();
+    m_Src_Pos = Context::smt_Get().m_Engine->m_Camera.mt_Get_View().getCenter();
     m_Accumulated_Time_s = 0.0f;
 }
 
@@ -337,13 +339,49 @@ void Command_Camera::mt_Update(float elapsed_time)
 
     l_Pos = fn_Interpolate(m_Interpolator.get(), m_Accumulated_Time_s, m_Time_s, m_Src_Pos, m_Tgt_Pos);
 
-    Context::smt_Get().m_Engine->mt_Set_Camera_Center(l_Pos);
+    Context::smt_Get().m_Engine->m_Camera.mt_Set_Position(l_Pos);
     if (m_Accumulated_Time_s >= m_Time_s)
     {
+        if (m_Hold_Position == false)
+        {
+            Context::smt_Get().m_Engine->m_Camera.mt_Back_To_Tgt();
+        }
         m_Completed = true;
     }
 }
 
+
+
+Command_Camera_Creature::Command_Camera_Creature(const Creature* tgt, float time_s, IInterpolator* interpolator)
+ :  m_Src_Pos(),
+    m_Tgt_Pos(Context::smt_Get().m_Engine->m_Map->m_Tileset->mt_Cell_To_Pixel(tgt->m_Pos)),
+    m_Tgt(tgt),
+    m_Time_s(time_s),
+    m_Accumulated_Time_s(0.0f),
+    m_Interpolator(interpolator)
+{}
+
+void Command_Camera_Creature::mt_Start(void)
+{
+    m_Src_Pos = Context::smt_Get().m_Engine->m_Camera.mt_Get_View().getCenter();
+    m_Accumulated_Time_s = 0.0f;
+}
+
+void Command_Camera_Creature::mt_Update(float elapsed_time)
+{
+    sf::Vector2f l_Pos;
+    m_Accumulated_Time_s += elapsed_time;
+
+    l_Pos = fn_Interpolate(m_Interpolator.get(), m_Accumulated_Time_s, m_Time_s, m_Src_Pos, m_Tgt_Pos);
+
+    Context::smt_Get().m_Engine->m_Camera.mt_Set_Position(l_Pos);
+
+    if (m_Accumulated_Time_s > m_Time_s)
+    {
+        Context::smt_Get().m_Engine->m_Camera.mt_Set_Tgt(m_Tgt);
+        m_Completed = true;
+    }
+}
 
 
 
@@ -453,9 +491,26 @@ void Command_ChestOpen::mt_Update(float elapsed_time)
         else
         {
             m_Completed = true;
-            std::cout << (int) m_Tgt->m_Sprite_Data.m_Facing_Dir << '\n';
         }
     }
+}
+
+
+void fn_Command_Give_Items(SystemScript* script, const std::vector<ChestData>& items)
+{
+    Item* l_Item;
+    std::vector<sf::String> l_Dialog;
+
+    for (std::size_t ii = 0; ii < items.size(); ii++)
+    {
+        Context::smt_Get().m_Engine->m_Inventory.mt_Change_Item_Count(items[ii].m_Item_Id, items[ii].m_Quantity, items[ii].m_Item_Type);
+
+        l_Item = Context::smt_Get().m_Engine->m_Inventory.mt_Get_Item<Item>(items[ii].m_Item_Id, items[ii].m_Item_Type);
+
+        l_Dialog.push_back("~Vous recevez : " + sf::String(l_Item->m_Name + " (x " + std::to_string(items[ii].m_Quantity) + ")~"));
+    }
+
+    script->mt_Add_Command(new Command_ShowDialog(l_Dialog));
 }
 
 
@@ -504,6 +559,30 @@ void Command_Music::mt_Update(float elapsed_time)
     if (m_Accumulated_Time >= m_Transition_Time)
     {
         Context::smt_Get().m_Engine->mt_Play_Music(m_Music_Id);
+        m_Completed = true;
+    }
+}
+
+
+
+Command_Sound::Command_Sound(const std::string& sound_id, const sf::Vector3f& pos, bool relative)
+ :  m_Sound_Id(sound_id),
+    m_Pos(pos),
+    m_Relative(relative)
+{}
+
+void Command_Sound::mt_Start(void)
+{
+    m_Duration = Context::smt_Get().m_System_Sound.mt_Play_Sound(m_Sound_Id, m_Pos, m_Relative);
+    m_Acc_Time = 0.0f;
+}
+
+void Command_Sound::mt_Update(float elapsed_time)
+{
+    m_Acc_Time += elapsed_time;
+
+    if (m_Acc_Time >= m_Duration)
+    {
         m_Completed = true;
     }
 }

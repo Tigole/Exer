@@ -2,8 +2,10 @@
 #define _MISC_HPP 1
 
 #include <vector>
+#include <stack>
 #include <string>
-
+#include <iomanip>
+#include <sstream>
 #include <istream>
 #include <ostream>
 #include <SFML/Graphics/Color.hpp>
@@ -20,6 +22,25 @@ bool fn_Parse_XML_Document(TiXmlDocument& doc, const jaja::fp::File& f);
 float fn_Distance(const sf::Vector2f& a, const sf::Vector2f& b);
 //sf::Vector2f fn_Get_Direction()
 
+template<typename T>
+std::string fn_To_String(const T& t, int precision = 2)
+{
+    std::ostringstream l_oss;
+
+    l_oss.precision(precision);
+    l_oss << std::fixed << t;
+
+    return l_oss.str();
+}
+
+template<typename T>
+void fn_Clear_Stack(std::stack<T>& s)
+{
+    while(!s.empty())
+    {
+        s.pop();
+    }
+}
 
 
 std::ostream& operator<<(std::ostream& o, const sf::Color& c);

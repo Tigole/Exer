@@ -28,7 +28,15 @@ bool SystemQuest::mt_Has_Quest(const std::string& quest_id)
 
 bool SystemQuest::mt_Is_Quest_Ended(const std::string& quest_id)
 {
-    return std::find_if(m_Ended_Quests.begin(), m_Ended_Quests.end(), [&](const std::string& id){return id == quest_id;}) != m_Ended_Quests.end();
+    bool l_Ret(false);
+    const Quest* l_Quest = mt_Get_Quest<Quest>(quest_id);
+
+    if (l_Quest != nullptr)
+    {
+        l_Ret = l_Quest->m_Completed;
+    }
+
+    return l_Ret;
 }
 
 

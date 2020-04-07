@@ -22,10 +22,11 @@ public:
     virtual void mt_Get_Description(std::vector<std::vector<sf::String>>& description) = 0;
 
     std::string m_Quest_Id;
+    std::string m_Quest_Name;
     bool m_Completed;
 };
 
-
+/*
 class Quest_Test : public Quest
 {
 public:
@@ -37,7 +38,7 @@ public:
 
 private:
     int m_Phase;
-};
+};*/
 
 class Quest_Main : public Quest
 {
@@ -65,7 +66,6 @@ public:
 
     void mt_On_Victory(void);
 
-private:
     bool m_Paid;
     bool m_Moving_Player;
 
@@ -91,6 +91,9 @@ public:
     bool m_Villager_Help;
     bool m_Villager_Seen;
     bool m_Mage_Seen;
+    bool m_Mage_Defeated_Before_Herbe;
+
+    std::string m_Map_Music_Id;
 };
 
 class Quest_Tutoriel : public Quest

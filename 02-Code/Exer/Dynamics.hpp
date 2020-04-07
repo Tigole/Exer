@@ -21,6 +21,7 @@ public:
     sf::Vector2f m_Pos;
     sf::Vector2f m_Vel;
     sf::Vector2f m_Desired_Vel;
+    float m_Speed;
     bool m_Solid_Map;
     bool m_Solid_Dyn;
     bool m_Friendly;
@@ -137,7 +138,6 @@ public:
     void mt_LookDir(const sf::Vector2f& direction);
 
     GameplayData m_Gameplay_Data;
-    float m_Speed;
     sf::Color m_Dialog_Color;
     std::vector<sf::String> m_Dialog;
 protected:
@@ -184,6 +184,8 @@ public:
 
 struct ChestData
 {
+    ChestData() : m_Item_Id(""), m_Item_Type(ItemType::COUNT), m_Quantity(0) {}
+    ChestData(const std::string& id, ItemType it, int quantity) : m_Item_Id(id), m_Item_Type(it), m_Quantity(quantity) {}
     std::string m_Item_Id;
     ItemType m_Item_Type;
     int m_Quantity;
@@ -219,6 +221,21 @@ public:
     float m_Duration_s;
     bool m_Start;
     float m_Accumulated_Time_s;
+};
+
+class Dynamic_Music : public Dynamic
+{
+public:
+    Dynamic_Music();
+
+    void mt_Draw(sf::RenderTarget& target, sf::RenderStates state) override;
+    void mt_Update(float elapsed_time) override;
+    void mt_OnInteract(Creature* player) override;
+
+    float m_Acc_Time;
+    float m_Transition_Time;
+    bool m_Started;
+    std::string m_Music_Id;
 };
 
 #endif // _DYNAMIC_HPP

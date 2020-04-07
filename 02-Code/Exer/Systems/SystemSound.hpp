@@ -8,7 +8,7 @@
 class SystemSound
 {
 public:
-    void mt_Play_Sound(const std::string& sound_id, const sf::Vector3f& pos, bool relative);
+    float mt_Play_Sound(const std::string& sound_id, const sf::Vector3f& pos, bool relative);
 
     static const std::string m_Cancel_String;
     static const std::string m_Validate_String;

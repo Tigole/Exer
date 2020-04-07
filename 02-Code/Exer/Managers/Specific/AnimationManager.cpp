@@ -25,7 +25,7 @@ bool AnimationManager::mt_Load_Resource(const std::string& reference_file, std::
         {
             std::stringstream l_ss(l_Line);
 
-            l_ss >> l_Line;
+            std::getline(l_ss, l_Line, ' ');
             if (l_Line == "SPRITESHEET")
             {
                 std::string l_SpriteSheet_Id;
@@ -38,6 +38,16 @@ bool AnimationManager::mt_Load_Resource(const std::string& reference_file, std::
             {
                 l_Data->m_Phases.push_back(sf::Vector2<std::size_t>(0, 0));
                 l_ss >> l_Data->m_Phases.back().x >> l_Data->m_Phases.back().y;
+            }
+            else if (l_Line == "SOUND")
+            {
+                std::size_t l_Index;
+                std::string l_Sound_Id;
+
+                std::getline(l_ss, l_Sound_Id, ' ');
+                l_ss >> l_Index;
+
+                l_Data->m_Sounds.push_back(std::make_pair(l_Index, l_Sound_Id));
             }
         }
 

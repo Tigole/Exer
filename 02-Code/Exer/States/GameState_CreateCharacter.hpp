@@ -13,6 +13,7 @@ struct ClassData
     sf::IntRect m_Sprite_Rect;
     GameplayData m_GameplayData;
     sf::Color m_Text_Color;
+    std::vector<std::string> m_Equipment_Ids;
 };
 
 class GameState_CreateCharacter : public GameState

@@ -41,6 +41,7 @@ struct Animation_Data
 {
     std::vector<sf::Vector2<std::size_t>> m_Phases;
     Resource<SpriteSheet> m_SpriteSheet;
+    std::vector<std::pair<std::size_t, std::string>> m_Sounds;
 };
 
 class Animation : public IAnimation
@@ -55,6 +56,7 @@ public:
 
     float m_Accumulated_Time_s;
     std::size_t m_Current_Phase;
+    std::size_t m_Current_Sound;
     sf::Vector2f m_Position;
     sf::Vector2f m_Dimension;
     sf::Sprite m_Sprite;

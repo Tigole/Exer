@@ -6,6 +6,7 @@
 #include "tinyxml.h"
 #include "GameEngine.hpp"
 
+
 Map::Map() : m_Width(0), m_Height(0), m_Name(), m_Ground_Indices(nullptr), m_Middle_Indices(nullptr), m_Air_Indices(nullptr), m_Solids(nullptr), m_Tileset()
 {}
 
@@ -14,7 +15,7 @@ Map::~Map()
     mt_Delete();
 }
 
-int Map::mt_Get_Index(int x, int y, int lvl)
+int Map::mt_Get_Index(int x, int y, int lvl) const
 {
     if (    (lvl >= 0 && lvl <= 2)
         &&  (x >= 0 && x < m_Width)
@@ -31,7 +32,7 @@ int Map::mt_Get_Index(int x, int y, int lvl)
     return -1;
 }
 
-bool Map::mt_Is_Solid(int x, int y)
+bool Map::mt_Is_Solid(int x, int y) const
 {
     if ((x >= 0 && x < m_Width) && (y >= 0 && y < m_Height))
     {
@@ -241,8 +242,6 @@ void MapInteration_Quest::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns
 
 Map1::Map1()
 {
-    m_Interations.emplace("Voyageur1", std::unique_ptr<IMapInteration>(new MapInteration_Dialog({"Ce troll nous empêche de passer...", "Aidez-nous...", "S'il vous plait..."})));
-    m_Interations.emplace("Voyageur2", std::unique_ptr<IMapInteration>(new MapInteration_Dialog({"Bah voilà, on est bloqué !", "Encore..."})));
     m_Interations.emplace("Troll", std::unique_ptr<IMapInteration>(new MapInteration_Quest("Troll_Quest", new MapInteration_Dialog({"Troll:\nMerci!\nTu peux passer."}))));
     m_Interations.emplace("Troll2", std::unique_ptr<IMapInteration>(new MapInteration_Quest("Troll_Quest", nullptr)));
     m_Interations.emplace("Tutoriel_Wolf_Warn1", std::unique_ptr<IMapInteration>(new MapInteration_Quest("Tutoriel", nullptr)));
@@ -264,7 +263,7 @@ bool Map1::mt_Populate_Dynamics(std::vector<Resource<Dynamic>>& dyns)
 
 bool Map1::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dynamic* tgt, InteractionNature nature)
 {
-    bool l_b_Ret;
+    bool l_b_Ret(false);
     Teleport* l_Tel = dynamic_cast<Teleport*>(tgt);
     SystemQuest& l_Sys_Quest = Context::smt_Get().m_Engine->m_System_Quest;
     SystemScript* l_Script = &Context::smt_Get().m_Engine->m_Script;
@@ -283,6 +282,7 @@ bool Map1::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dynamic* tgt,
             l_Creature->mt_LookAt(*Context::smt_Get().m_Engine->m_Player);
 
         l_it->second->mt_On_Interaction(dyns, tgt, nature);
+        l_b_Ret = true;
     }
 
     return l_b_Ret;

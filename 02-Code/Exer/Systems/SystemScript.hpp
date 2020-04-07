@@ -16,7 +16,6 @@ public:
 
     bool m_User_Ctrl;
     bool m_Light_Ctrl;
-    bool m_Camera_Ctrl;
     bool m_Check_Dyn_Collision;
 
 private:

@@ -23,6 +23,7 @@
 #include "Event.hpp"
 
 #include "FilePacker/FilePacker.hpp"
+#include "PathFinder.hpp"
 
 class GameEngine;
 
@@ -62,6 +63,8 @@ public:
     SystemDialog* m_Dialog;
     SystemAnimation* m_System_Animation;
     SystemSound m_System_Sound;
+
+    PathFinder m_PathFinder;
 
 
     jaja::fp::FilePacker m_Packer;

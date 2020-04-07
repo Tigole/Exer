@@ -10,13 +10,14 @@ const std::string SystemSound::m_Buzz_String = "Buzz";
 const std::string SystemSound::m_Chest_String = "Chest";
 
 
-void SystemSound::mt_Play_Sound(const std::string& sound_id, const sf::Vector3f& pos, bool relative)
+float SystemSound::mt_Play_Sound(const std::string& sound_id, const sf::Vector3f& pos, bool relative)
 {
+    float l_Duration(0.0f);
     std::size_t ii = 0;
 
     for (ii = 0; (ii < m_Sounds.size()) && (m_Sounds[ii].getStatus() == sf::SoundSource::Playing); ii++)
     {
-        std::cout << (int)m_Sounds[ii].getStatus() << '\n';
+        //std::cout << (int)m_Sounds[ii].getStatus() << '\n';
     }
 
     if (ii < m_Sounds.size())
@@ -26,7 +27,11 @@ void SystemSound::mt_Play_Sound(const std::string& sound_id, const sf::Vector3f&
         m_Sounds[ii].setBuffer(*m_Buffers[ii].m_Resource);
         m_Sounds[ii].setRelativeToListener(relative);
         m_Sounds[ii].setPosition(pos);
+        m_Sounds[ii].setAttenuation(0.0f);
         m_Sounds[ii].play();
+        l_Duration = m_Buffers[ii]->getDuration().asSeconds();
     }
+
+    return l_Duration;
 }
 

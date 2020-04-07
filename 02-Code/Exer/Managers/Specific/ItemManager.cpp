@@ -34,6 +34,10 @@ bool ItemFactory::mt_Load(const std::string& file_desc)
             {
                 l_Type = ItemType::Quest;
             }
+            else if ((l_Tmp == "Equip") || (l_Tmp == "EQUIP"))
+            {
+                l_Type = ItemType::Equipment;
+            }
 
             l_Tmp = l_Line.substr(0, l_Separator);
             l_Tmp = l_Line.substr(l_Separator + 1, std::string::npos);
@@ -164,6 +168,14 @@ bool ItemFactory::mt_Create_Quest(const std::string& reference_file, Item*& reso
             {
                 std::getline(l_ss, l_Quest_Item->m_Description, '\n');
             }
+            else if (l_Line == "SPRITE")
+            {
+                std::string l_Texture_Id;
+                l_ss >> l_Texture_Id;
+                l_ss >> l_Quest_Item->m_Sprite_Rect.x >> l_Quest_Item->m_Sprite_Rect.y;
+
+                l_Quest_Item->m_Sprite = Context::smt_Get().m_SpriteSheets.mt_Get_Resource(l_Texture_Id);
+            }
         }
 
         resource = l_Quest_Item;
@@ -181,7 +193,7 @@ bool ItemFactory::mt_Create_Equipment(const std::string& reference_file, Item*& 
 {
     bool l_Ret;
     std::stringstream l_Stream;
-    Item_Quest* l_Quest_Item;
+    Item_Equipment* l_Item;
     jaja::fp::File l_File;
 
     if (Context::smt_Get().m_Packer.mt_Get_File(reference_file, l_File))
@@ -190,7 +202,7 @@ bool ItemFactory::mt_Create_Equipment(const std::string& reference_file, Item*& 
 
         l_Stream.str(l_File.mt_To_String());
 
-        l_Quest_Item = new Item_Quest;
+        l_Item = new Item_Equipment;
 
         while(fn_Get_Line(l_Stream, l_Line))
         {
@@ -199,15 +211,23 @@ bool ItemFactory::mt_Create_Equipment(const std::string& reference_file, Item*& 
             l_ss >> l_Line;
             if (l_Line == "NAME")
             {
-                std::getline(l_ss, l_Quest_Item->m_Name, '\n');
+                std::getline(l_ss, l_Item->m_Name, '\n');
             }
             else if (l_Line == "DESC")
             {
-                std::getline(l_ss, l_Quest_Item->m_Description, '\n');
+                std::getline(l_ss, l_Item->m_Description, '\n');
+            }
+            else if (l_Line == "SPRITE")
+            {
+                std::string l_Texture_Id;
+                l_ss >> l_Texture_Id;
+                l_ss >> l_Item->m_Sprite_Rect.x >> l_Item->m_Sprite_Rect.y;
+
+                l_Item->m_Sprite = Context::smt_Get().m_SpriteSheets.mt_Get_Resource(l_Texture_Id);
             }
         }
 
-        resource = l_Quest_Item;
+        resource = l_Item;
     }
     else
     {

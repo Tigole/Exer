@@ -1,6 +1,7 @@
 #include "SoundManager.hpp"
 #include "../Systems/SystemSound.hpp"
 #include "../Context.hpp"
+#include "ResourceManager_Functions.hpp"
 
 SoundManager::SoundManager() : ResourceManager<sf::SoundBuffer>("Sound")
 {}
@@ -11,7 +12,7 @@ bool SoundManager::mt_Load(const std::string& file_desc)
     mt_Add_Resource(SystemSound::m_Cancel_String, new ResourceData<sf::SoundBuffer>("Assets/Sounds/Cancel1.ogg"));
     mt_Add_Resource(SystemSound::m_Buzz_String, new ResourceData<sf::SoundBuffer>("Assets/Sounds/Buzzer1.ogg"));
     mt_Add_Resource(SystemSound::m_Chest_String, new ResourceData<sf::SoundBuffer>("Assets/Sounds/Chest.ogg"));
-    return true;
+    return fn_Load_Config(*this, file_desc);
 }
 
 bool SoundManager::mt_Load_Resource(const std::string& reference_file, std::unique_ptr<sf::SoundBuffer>& resource)

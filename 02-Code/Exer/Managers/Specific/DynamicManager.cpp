@@ -51,7 +51,7 @@ bool DynamicManager::mt_Load_Resource(const std::string& reference_file, std::un
             l_Creature->m_Gameplay_Data.m_Health = 1;
             l_Creature->m_Gameplay_Data.m_Health_Max = 1;
 
-            l_Creature->m_Speed = 4.0f;
+            l_Creature->m_Speed = 3.0f;
 
             while(fn_Get_Line(l_Stream, l_Line))
             {
@@ -245,6 +245,34 @@ bool DynamicManager::mt_Load_Resource(const std::string& reference_file, std::un
             }
 
             resource.reset(l_Light);
+            l_b_Ret = true;
+        }
+        else if (l_File_Ext == "music")
+        {
+            Dynamic_Music* l_Music = new Dynamic_Music;
+            std::string l_Line;
+
+            while(fn_Get_Line(l_Stream, l_Line))
+            {
+                std::stringstream l_ss(l_Line);
+
+                std::getline(l_ss, l_Line, ' ');
+
+                if (l_Line == "TRANS")
+                {
+                    l_ss >> l_Music->m_Transition_Time;
+                }
+                else if (l_Line == "MUSIC")
+                {
+                    std::getline(l_ss, l_Music->m_Music_Id, '\n');
+                }
+                else if (l_Line == "DIM")
+                {
+                    l_ss >> l_Music->m_Dim.x >> l_Music->m_Dim.y;
+                }
+            }
+
+            resource.reset(l_Music);
             l_b_Ret = true;
         }
     }

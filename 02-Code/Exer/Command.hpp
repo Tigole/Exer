@@ -9,6 +9,7 @@
 #include "Systems/SystemDialog.hpp"
 
 class SystemDialog;
+class SystemScript;
 
 class Command
 {
@@ -151,13 +152,30 @@ public:
 class Command_Camera : public Command
 {
 public:
-    Command_Camera(const sf::Vector2f& tgt_pos_pix, float time_s, IInterpolator* interpolator);
+    Command_Camera(const sf::Vector2f& tgt_pos_pix, float time_s, IInterpolator* interpolator, bool hold_position);
 
     void mt_Start(void) override;
     void mt_Update(float elapsed_time) override;
 
     sf::Vector2f m_Src_Pos;
     sf::Vector2f m_Tgt_Pos;
+    float m_Time_s;
+    float m_Accumulated_Time_s;
+    std::unique_ptr<IInterpolator> m_Interpolator;
+    bool m_Hold_Position;
+};
+
+class Command_Camera_Creature : public Command
+{
+public:
+    Command_Camera_Creature(const Creature* tgt, float time_s, IInterpolator* interpolator);
+
+    void mt_Start(void) override;
+    void mt_Update(float elapsed_time) override;
+
+    sf::Vector2f m_Src_Pos;
+    sf::Vector2f m_Tgt_Pos;
+    const Creature* m_Tgt;
     float m_Time_s;
     float m_Accumulated_Time_s;
     std::unique_ptr<IInterpolator> m_Interpolator;
@@ -225,6 +243,8 @@ public:
     float m_Time;
 };
 
+void fn_Command_Give_Items(SystemScript* script, const std::vector<ChestData>& items);
+
 
 class Command_AddSkill : public Command
 {
@@ -252,6 +272,21 @@ public:
     float m_Transition_Time;
     float m_Accumulated_Time;
     float m_Start_Volume;
+};
+
+class Command_Sound : public Command
+{
+public:
+    Command_Sound(const std::string& sound_id, const sf::Vector3f& pos, bool relative);
+
+    void mt_Start(void) override;
+    void mt_Update(float elapsed_time) override;
+
+    std::string m_Sound_Id;
+    sf::Vector3f m_Pos;
+    bool m_Relative;
+    float m_Duration;
+    float m_Acc_Time;
 };
 
 

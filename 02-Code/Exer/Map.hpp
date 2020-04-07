@@ -5,10 +5,12 @@
 
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/String.hpp>
+#include <SFML/System/Thread.hpp>
 #include "Tileset.hpp"
 #include <memory>
 
 class Dynamic;
+class Map;
 
 enum class InteractionNature
 {
@@ -59,8 +61,8 @@ public:
     Resource<Tileset> m_Tileset;
     std::vector<MapDynamics> m_Dyns;
 
-    int mt_Get_Index(int x, int y, int lvl);
-    bool mt_Is_Solid(int x, int y);
+    int mt_Get_Index(int x, int y, int lvl) const;
+    bool mt_Is_Solid(int x, int y) const;
 
     bool mt_Create(const std::string& file, const std::string& tileset_id, const std::string& name);
     virtual bool mt_Populate_Dynamics(std::vector<Resource<Dynamic>>& dyns) = 0;

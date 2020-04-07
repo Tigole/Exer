@@ -31,14 +31,24 @@ void GameState_Fight::mt_Update(float delta_time_s)
         if (m_Fight.mt_Is_Ended())
         {
             Context::smt_Get().m_Engine->m_Script.mt_Complete_Current_Command();
-            Context::smt_Get().m_Engine->m_State = GameStateType::Game;
             Context::smt_Get().m_Engine->m_Script.mt_Add_Command(new Command_Music("", 0.5f));
-            Context::smt_Get().m_Engine->m_Script.mt_Add_Command(new Command_Music(m_Previous_Music_Id, 0.5f));
+            Context::smt_Get().m_System_Animation = &Context::smt_Get().m_Engine->m_Animation;
 
-            if ((m_Fight.m_Player_Win == true) && (m_Fight.m_pfn_On_Victory != nullptr))
+            if (m_Fight.m_Player_Win == true)
             {
-                m_Fight.m_pfn_On_Victory();
+                Context::smt_Get().m_Engine->m_State = GameStateType::Game;
+                Context::smt_Get().m_Engine->m_Script.mt_Add_Command(new Command_Music(m_Previous_Music_Id, 0.5f));
+                Context::smt_Get().m_Engine->m_Script.mt_Add_Command(new Command_Camera_Creature(Context::smt_Get().m_Engine->m_Player, 2.0f, new Interpolator_Gain(2.0f)));
+                if (m_Fight.m_pfn_On_Victory != nullptr)
+                {
+                    m_Fight.m_pfn_On_Victory();
+                }
             }
+            else
+            {
+                Context::smt_Get().m_Engine->m_State = GameStateType::Game_Over;
+            }
+
 
             /*auto d = std::remove_if(Context::smt_Get().m_Engine->m_Dyn.begin(), Context::smt_Get().m_Engine->m_Dyn.end(), [](const Resource<Dynamic>& d)
                                     {
@@ -61,7 +71,7 @@ void GameState_Fight::mt_Update(float delta_time_s)
 void GameState_Fight::mt_Draw(sf::RenderTarget& target)
 {
     Context::smt_Get().m_Engine->m_Game_State.mt_Draw(target);
-    target.setView(Context::smt_Get().m_Engine->mt_Get_Camera_View());
+    target.setView(Context::smt_Get().m_Engine->m_Camera.mt_Get_View());
     m_Fight.mt_Draw(target);
     Context::smt_Get().m_Engine->m_Game_State.mt_Draw_Gameplay_Data(target);
 }
