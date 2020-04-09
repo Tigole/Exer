@@ -13,7 +13,15 @@ void GameStateDisplayer::mt_Update(float delta_time_s)
 {
     m_Accumulated_Time_s += delta_time_s;
 
-    m_Selected_Color = fn_Interpolate(&m_Interpolator, m_Accumulated_Time_s, m_Gradient_Period_s, m_Color_Theme[1], m_Color_Theme[0]);
+    if (m_Flag_Update == true)
+    {
+        while (m_Accumulated_Time_s >= m_Gradient_Period_s)
+        {
+            m_Accumulated_Time_s -= m_Gradient_Period_s;
+        }
+
+        m_Selected_Color = fn_Interpolate(&m_Interpolator, m_Accumulated_Time_s, m_Gradient_Period_s, m_Color_Theme[1], m_Color_Theme[0]);
+    }
 }
 
 
@@ -271,6 +279,7 @@ void GameState_Item::mt_Handle_Event(sf::Event& event)
             {
                 m_Select_Item_Type = false;
                 Context::smt_Get().m_System_Sound.mt_Play_Sound(SystemSound::m_Validate_String, {0.0f, 0.0f, 0.0f}, true);
+                m_Flag_Update = false;
             }
             else
             {
@@ -301,6 +310,7 @@ void GameState_Item::mt_Handle_Event(sf::Event& event)
         if (l_Type == EventType::Cancel)
         {
             m_Select_Item_Type = true;
+            m_Flag_Update = true;
             Context::smt_Get().m_System_Sound.mt_Play_Sound(SystemSound::m_Cancel_String, {0.0f, 0.0f, 0.0f}, true);
         }
         else if (l_Type == EventType::Validate)

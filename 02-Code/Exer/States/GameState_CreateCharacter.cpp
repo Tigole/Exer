@@ -9,7 +9,7 @@ void GameState_CreateCharacter::mt_Create(void)
 
     l_Data.m_Class_Name = "Lutteur";
     l_Data.m_Class_Skill = "EarthFist";
-    l_Data.m_Class_Description = "Le lutteur affronte ses adversaires\nen utilisant sa puissance physique.";
+    l_Data.m_Class_Description = "Le Lutteur affronte ses adversaires\nen utilisant sa puissance physique.";
     l_Data.m_Text_Color = sf::Color(160, 82, 45);
     l_Data.m_Sprite = Context::smt_Get().m_SpriteSheetAnimators.mt_Get_Resource("_Krayn");
     l_Data.m_GameplayData.m_Health_Max = 16 * l_Life_Multiplier;
@@ -31,7 +31,7 @@ void GameState_CreateCharacter::mt_Create(void)
 
     l_Data.m_Class_Name = "Mage";
     l_Data.m_Class_Skill = "FireBall";
-    l_Data.m_Class_Description = "La mage lance des boules de feu sur ses ennemis.";
+    l_Data.m_Class_Description = "Le Mage lance des boules de feu sur ses ennemis.";
     l_Data.m_Text_Color = sf::Color::Red;
     l_Data.m_Sprite = Context::smt_Get().m_SpriteSheetAnimators.mt_Get_Resource("_Bob");
     l_Data.m_GameplayData.m_Health_Max = 11 * l_Life_Multiplier;
@@ -42,7 +42,7 @@ void GameState_CreateCharacter::mt_Create(void)
 
     l_Data.m_Class_Name = "Archer";
     l_Data.m_Class_Skill = "IceArrow";
-    l_Data.m_Class_Description = "l'archer préfère attaquer ses ennemis à distance.\nIl ne supporte pas bien le contact.";
+    l_Data.m_Class_Description = "l'Archer préfère attaquer ses ennemis à distance.\nIl ne supporte pas bien le contact.";
     l_Data.m_Text_Color = sf::Color(100, 149, 237);
     l_Data.m_Sprite = Context::smt_Get().m_SpriteSheetAnimators.mt_Get_Resource("_Shin");
     l_Data.m_GameplayData.m_Health_Max = 14 * l_Life_Multiplier;

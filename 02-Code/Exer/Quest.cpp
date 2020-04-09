@@ -4,39 +4,6 @@
 #include "GameEngine.hpp"
 #include <sstream>
 #include <iomanip>
-/*
-Quest_Test::Quest_Test()
-{
-    m_Quest_Id = "First Quest";
-}
-
-bool Quest_Test::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dynamic* tgt, Quest_Nature nature)
-{
-    bool l_Ret(false);
-    return l_Ret;
-}
-
-bool Quest_Test::mt_Populate_Dynamics(std::vector<Resource<Dynamic>>& dyns, const std::string& map_id)
-{
-    if (map_id == "Road")
-    {
-
-        //l_dyn->m_Friendly = true;
-        //l_dyn->m_Pos = {25, 19};
-
-        //dyns.push_back(std::unique_ptr<Dynamic>(l_dyn));
-        m_Phase = 0;
-    }
-    return true;
-}
-
-void Quest_Test::mt_Get_Description(std::vector<std::vector<sf::String>>& description)
-{
-    description.push_back({"Classe de test", "Pas grand chose à dire"});
-    description.push_back({"1ère ligne du 2nd paragraphe", "Pas grand chose à dire"});
-}*/
-
-
 
 Quest_Main::Quest_Main()
 {
@@ -353,7 +320,7 @@ bool Quest_Dark_Mage::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dy
         l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Villageois2, sf::Vector2f(1.0f, 0.0f), true));
         l_Script->mt_Add_Command(new Command_Lights(sf::Color::Black, l_Engine->m_Sky_Color, 1.0f));
         l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Player, "Je suppose que ce sont des habitants de " + fn_City_Name("La Passe")+ "."),
-                                                        fn_Dialog(l_Player, "Ce vilage se situe au Sud de ma position.")}));
+                                                        fn_Dialog(l_Player, "Ce village se situe au Sud de ma position.")}));
         l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Player, sf::Vector2f(0.0f, 1.0f), true));
         l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Player, "Si ces gens sont en danger,\nil est de mon devoir de les aider."),
                                                         fn_Dialog(l_Player, "Il serait intéressant d'en savoir plus sur leur agresseur.")}));
@@ -452,11 +419,11 @@ bool Quest_Dark_Mage::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dy
         l_Script->mt_Add_Command(new Command_Creature_LookAt(l_Villageois2, l_Player));
         if (l_Engine->m_Inventory.mt_Get_Item_Count("Medicinal_Herb", ItemType::Quest) > 0)
         {
+            l_Engine->m_Inventory.mt_Change_Item_Count("Medicinal_Herb", -1, ItemType::Quest);
             l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Player, "Je viens avec de " + fn_Quest_Object("l'herbe magique") + "."),
                                                             fn_Dialog(l_Villageois2, "Mon seigneur, vous êtes trop bon !")}));
-            if (m_Mage_Defeated_Before_Herbe = false)
+            if (m_Mage_Defeated_Before_Herbe == false)
             {
-                l_Engine->m_Inventory.mt_Change_Item_Count("Medicinal_Herb", -1, ItemType::Quest);
                 l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Villageois2, "Je vous attend au sanctaire."),
                                                                 fn_Dialog(l_Villageois2, "Ne tardez pas trop.")}));
                 if (Context::smt_Get().m_Engine->mt_Get_Creature("Nivalys")->m_Gameplay_Data.m_Health <= 0)
@@ -484,6 +451,7 @@ bool Quest_Dark_Mage::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dy
             {
                 l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Villageois2, "Et bien."),
                                                                 fn_Dialog(l_Villageois2, "On peut dire qu'on vous doit une fière chandelle.")}));
+                m_Completed = true;
             }
             m_Villager_Help = true;
             l_b_Ret = true;
@@ -767,18 +735,18 @@ bool Quest_Tutoriel::mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dyn
         l_Script->mt_Add_Command(new Command_Wait(1.0f));
         l_Script->mt_Add_Command(new Command_Camera(Context::smt_Get().m_Engine->m_Map->m_Tileset->mt_Cell_To_Pixel(l_Player->m_Pos), 1.0f, new Interpolator_Gain(2.0f), false));
         l_Script->mt_Add_Command(new Command_ShowDialog({fn_Dialog(l_Player, "Ca va être mon premier combat depuis longtemps."),
-                                  fn_Dialog(l_Player, "Je dois bien me décider à attaquer\nlorqu'il est à porter."),
+                                  fn_Dialog(l_Player, "Je dois bien me décider à attaquer\nlorqu'il est à porté."),
                                   fn_Dialog(l_Player, "Je peux également me déplacer pour\nm'approcher de lui\nou au contraire m'en éloigner."),
                                   fn_Dialog(l_Player, "Dans tous les cas, j'ai l'avantage\nde décider en premier\nde ce que je vais faire."),}));
         l_Script->mt_Add_Command(new Command_ShowDialog({"~Les combats se jouent au tour par tour.~",
                                                         "~Attaquer fait terminer le tour une fois l'attaque réalisée.~",
                                                         "~Passer permet de laisser le prochain personnage jouer.~",
-                                                        "~Toute autre action permet de réaliser une second action dans la foulée.~",
+                                                        "~Toute autre action permet d'en réaliser\nune second dans la foulée.~",
                                                         "~Il est possible d'arrêter un déplacement sans avoir consommé\ntoute la distance disponible.\nC'est que la touche " + fn_Command_Key("Espace") +" permet de faire.~",
                                                         "~Les " + fn_Command_Key("cercles") + " délimitent la distance\nd'une attaque ou d'un déplacement.~",
                                                         "~Le " + fn_Command_Key("carré rouge") + " est la cible actuelle de l'attaque.~",
                                                         "~Le choix de la cible se fait\nen utilisant " + fn_Command_Key("les flèches directionnelles") + ".~",
-                                                        "~La touche " + fn_Command_Key("Echap") + " permet, dans certaines conditions, de revenir en arrière.~",
+                                                        "~La touche " + fn_Command_Key("Echap") + " permet,\ndans certaines conditions, de revenir en arrière.~",
                                                         "~Attention à bien choisir la cible.~"}));
         m_Wolf_Seen = true;
     }

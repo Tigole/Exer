@@ -26,20 +26,6 @@ public:
     bool m_Completed;
 };
 
-/*
-class Quest_Test : public Quest
-{
-public:
-    Quest_Test();
-
-    bool mt_On_Interaction(std::vector<Resource<Dynamic>>& dyns, Dynamic* tgt, Quest_Nature nature) override;
-    bool mt_Populate_Dynamics(std::vector<Resource<Dynamic>>& dyns, const std::string& map_id) override;
-    void mt_Get_Description(std::vector<std::vector<sf::String>>& description) override;
-
-private:
-    int m_Phase;
-};*/
-
 class Quest_Main : public Quest
 {
 public:

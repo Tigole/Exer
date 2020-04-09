@@ -287,7 +287,7 @@ void GameEngine::mt_Draw(sf::RenderTarget& target)
                 m_Script.mt_Add_Command(new Command_Music("Map", 1.0f));
                 m_Script.mt_Add_Command(new Command_Lights(sf::Color::Black, sf::Color::White, 2.0f));
                 m_Script.mt_Add_Command(new Command_ShowDialog({fn_Dialog(m_Player, "Ah !"),
-                                                               fn_Dialog(m_Player, "L'air frait !")}));
+                                                               fn_Dialog(m_Player, "L'air frais !")}));
                 m_Script.mt_Add_Command(new Command_Sound("Wind", sf::Vector3f(0.0f, 0.0f, 0.0f), true));
                 m_Script.mt_Add_Command(new Command_ShowDialog({fn_Dialog(m_Player, "Aller !"),
                                                                fn_Dialog(m_Player, "Descendons  le plus vite possible de cette maudite passe !"),
@@ -389,22 +389,25 @@ void GameEngine::mt_Change_Map(const std::string& map_id, const sf::Vector2f& pl
 void GameEngine::mt_New_Game(const std::string& file)
 {
     sf::Vector2f l_Player_Pos(18.0f, 19.0f);
-    bool l_Dbg(true);
+    bool l_Dbg(false);
     Creature* l_Troll = nullptr;
 
     m_Dyn.push_back(Context::smt_Get().m_Dynamics.mt_Get_Resource("Player"));
 
-    /// Troll
-    //l_Player_Pos = {31.0f, 61.0f};
+    if (l_Dbg == true)
+    {
+        /// Troll
+        //l_Player_Pos = {31.0f, 61.0f};
 
-    /// Apres troll
-    //l_Player_Pos = {81.0f, 58.0f};
+        /// Apres troll
+        l_Player_Pos = {81.0f, 58.0f};
 
-    /// Bob
-    //l_Player_Pos = {97.0f, 101.0f};
+        /// Bob
+        //l_Player_Pos = {97.0f, 101.0f};
 
-    /// Mage
-    l_Player_Pos = {76.0f, 20.0f};
+        /// Mage
+        //l_Player_Pos = {76.0f, 20.0f};
+    }
 
     /// Fin
     //l_Player_Pos = {144.0f, 50.0f};
@@ -415,6 +418,7 @@ void GameEngine::mt_New_Game(const std::string& file)
     {
         m_Inventory.mt_Change_Item_Count("LifePotion", 20, ItemType::Edible);
         m_Inventory.mt_Change_Item_Count("PsyPotion", 20, ItemType::Edible);
+        m_Inventory.mt_Change_Item_Count("Medicinal_Herb", 1, ItemType::Quest);
 
         m_Sky_Color = sf::Color::White;
 
@@ -426,9 +430,9 @@ void GameEngine::mt_New_Game(const std::string& file)
 
         l_Quest->m_Mage_Defeated_Before_Herbe = false;
 
-        l_Troll->m_Pos = sf::Vector2f(69.0f, 21.0f);
+        //l_Troll->m_Pos = sf::Vector2f(69.0f, 21.0f);
         //l_Quest->m_Troll_Help = true;
-        l_Villageois->m_Pos = sf::Vector2f(69.0f, 19.0f);
+        //l_Villageois->m_Pos = sf::Vector2f(69.0f, 19.0f);
         //l_Quest->m_Villager_Help = true;
     }
     else
@@ -442,7 +446,7 @@ void GameEngine::mt_New_Game(const std::string& file)
         m_Script.mt_Add_Command(new Command_ShowDialog({"_Contrôles du jeu :_ \nValide tes actions avec #F4661B *Espace* #white \nAnnule avec #F4661B *Echap* #white \nDéplace toi avec les #F4661B *flèches directionnelles* #white"}));
         m_Script.mt_Add_Command(new Command_Music("Presentation", 2.0f));
         m_Script.mt_Add_Command(new Command_Wait(2.0f));
-        m_Script.mt_Add_Command(new Command_ShowDialog({"Bienvenu dans " + fn_Command_Key("Exer", sf::Color::White) + ".",
+        m_Script.mt_Add_Command(new Command_ShowDialog({"Bienvenue dans " + fn_Command_Key("Exer", sf::Color::White) + ".",
                                                        "C'est après 10 mois de développement\net près de 30 000 lignes de code,\nque je suis fier de présenter ce 1er RPG.",
                                                        "Mais assez passé de temps en présentations,\nà toi de jouer !",
                                                        "Bonne aventure !",

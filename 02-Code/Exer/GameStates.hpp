@@ -55,6 +55,8 @@ public:
     sf::Color m_Selected_Color;
 
     sf::Color m_Color_Theme[2];
+
+    bool m_Flag_Update = true;
 };
 
 class GameState_Quest : public GameStateDisplayer
